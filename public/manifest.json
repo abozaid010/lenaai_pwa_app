@@ -1,0 +1,20 @@
+{
+    "name": "LenaAI PWA App",
+    "short_name": "LenaAI",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "description": "A WhatsApp-like chat PWA built with Next.js",
+    "icons": [
+      {
+        "src": "/icons/lena-ai-logo.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "/lena-ai-logo.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ]
+  }
