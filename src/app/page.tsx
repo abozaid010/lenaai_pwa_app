@@ -1,13 +1,18 @@
 'use client'
 import React, { useEffect, useState, useRef } from 'react'
+
+// Import your global styles or variables
 import './globals.css'
 import styles from './styles'
-import Image from 'next/image'
+
+// Import external helpers & types
+import Helper from '../utils/Helper'
+import Message from '../types/Message'
+
+// Import external components
 import AlbumBubble from '../components/AlbumBubble'
 import AlbumModal from '../components/AlbumModal'
-import Message from '../types/Message'
 import MessageBubble from '../components/MessageBubble'
-import Helper from '../utils/Helper'
 
 // ---------- MAIN CHAT PAGE COMPONENT ----------
 export default function ChatPage() {
@@ -47,12 +52,14 @@ export default function ChatPage() {
   // ==============================
   useEffect(() => {
     if (!phoneNumber) return
+
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as Message[]
         if (Array.isArray(parsed)) {
           setMessages(parsed)
+
           // Update global ID so we don't reuse
           const maxId = parsed.reduce((acc, msg) => Math.max(acc, msg.id), 0)
           Helper.globalMessageId = maxId + 1
@@ -79,27 +86,16 @@ export default function ChatPage() {
     localStorage.removeItem(STORAGE_KEY)
     Helper.globalMessageId = 1
   }
-  function renderChatHeader() {
-    return <div> 
-   
-      {/* Info: phone number */}
-      <div style={{ padding: '0 10px', fontStyle: 'italic' }}>
-        Your Phone Number: {phoneNumber || 'loading...'}
-      </div>
 
-      {/* Clear Chat */}
-      <button style={styles.clearButton} onClick={handleClearChat}>
-        Clear Chat
-      </button>
-      </div>
-  }
   // ==============================
   //   ALBUM MODAL HANDLERS
   // ==============================
   const handleOpenAlbum = (images: Array<{ url: string; full: string }>) => {
     setSelectedAlbum(images)
   }
-  const handleCloseAlbum = () => setSelectedAlbum(null)
+  const handleCloseAlbum = () => {
+    setSelectedAlbum(null)
+  }
   const handleLikeIt = () => {
     console.log('User clicked "Like it"')
     setSelectedAlbum(null)
@@ -203,7 +199,7 @@ export default function ChatPage() {
   const handleStartRecording = async () => {
     console.log('handleStartRecording invoked')
     if (!navigator.mediaDevices?.getUserMedia) {
-      alert('MediaRecorder not supported')
+      alert('MediaRecorder not supported in this browser or environment.')
       return
     }
     try {
@@ -222,9 +218,14 @@ export default function ChatPage() {
       }
       mediaRecorder.onstop = () => {
         console.log('MediaRecorder onstop, chunk count:', chunksRef.current.length)
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        const url = URL.createObjectURL(blob)
-        sendVoiceMessage(url)
+        // If chunk count is 0, typically means no data was captured
+        if (chunksRef.current.length > 0) {
+          const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+          const url = URL.createObjectURL(blob)
+          sendVoiceMessage(url)
+        } else {
+          console.warn('No audio data captured. Possibly pressed mic too briefly or Safari lacks support.')
+        }
       }
       mediaRecorder.onerror = (err) => {
         console.error('MediaRecorder error:', err)
@@ -233,7 +234,7 @@ export default function ChatPage() {
       mediaRecorder.start()
       setRecorder(mediaRecorder)
       setIsRecording(true)
-      console.log('Recording started')
+      console.log('Recording started (hold at least 1s).')
     } catch (err) {
       console.error('Error accessing microphone:', err)
     }
@@ -242,11 +243,16 @@ export default function ChatPage() {
   const handleStopRecording = () => {
     console.log('handleStopRecording invoked')
     if (recorder) {
-      recorder.stop()
-      setRecorder(null)
+      // give it a short delay to ensure data is captured
+      setTimeout(() => {
+        recorder.stop()
+        setRecorder(null)
+        setIsRecording(false)
+        console.log('Stopped recording (after short delay).')
+      }, 100)
+    } else {
+      console.log('No recorder to stop.')
     }
-    setIsRecording(false)
-    console.log('Stopped recording')
   }
 
   // Called when we finalize an audio message
@@ -262,7 +268,7 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, voiceMsg])
 
     // 2) Optionally send to server if needed
-    // e.g. to handle voice messages server-side, you'd do a fetch here
+    // e.g., to handle voice server-side, do a fetch here
   }
 
   // ==============================
@@ -277,11 +283,19 @@ export default function ChatPage() {
           style={styles.callButton}
           onClick={() => (window.location.href = 'tel:+201016080323')}
         >
-          <div >📞</div>
+          📞
         </button>
       </header>
 
-      {/* {renderChatHeader()} */}
+      {/* Info: phone number */}
+      <div style={{ padding: '0 10px', fontStyle: 'italic' }}>
+        Your Phone Number: {phoneNumber || 'loading...'}
+      </div>
+
+      {/* Clear Chat */}
+      <button style={styles.clearButton} onClick={handleClearChat}>
+        Clear Chat
+      </button>
 
       {/* Chat Area */}
       <div style={styles.chatArea}>
@@ -306,9 +320,9 @@ export default function ChatPage() {
 
         {newMessage.trim().length > 0 ? (
           // If user typed something, show "Send"
-            <button style={styles.sendButton} onClick={handleSendText}>
+          <button style={styles.sendButton} onClick={handleSendText}>
             ➤
-            </button>
+          </button>
         ) : (
           // If no text, show the record icon
           <div
