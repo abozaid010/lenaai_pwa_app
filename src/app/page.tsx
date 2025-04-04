@@ -1,7 +1,11 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
+
+// If you have global CSS or want to rely on CSS variables (dark mode), do:
 import './globals.css'
+
+// Next.js <Image /> for future expansions if you like
 import Image from 'next/image'
 import AlbumBubble from '../components/AlbumBubble'
 import AlbumModal from '../components/AlbumModal'
@@ -10,13 +14,16 @@ import AlbumModal from '../components/AlbumModal'
 type Message = {
   id: number
   type: 'text' | 'voice' | 'imageAlbum'
-  // content can be a string, string[], or array of { url, full: string }
-  // for a voice, we might store a data URL or blob URL
   content: string | string[] | Array<{ url: string; full: string }>
   sender: 'user' | 'server'
 }
 
-// ------------- Phone Number Generator -------------
+// ---------- Helper Functions ----------
+let globalMessageId = 1
+function getNextId() {
+  return globalMessageId++
+}
+
 function getRandomEgyptPhoneNumber(): string {
   const prefixes = ['010', '011', '012', '015']
   const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]
@@ -27,30 +34,28 @@ function getRandomEgyptPhoneNumber(): string {
   return prefix + rest
 }
 
-// ------------- ID Generator -------------
-let globalMessageId = 1
-function getNextId() {
-  return globalMessageId++
-}
-
-// ------------- Main Chat Component -------------
+// ---------- MAIN CHAT PAGE COMPONENT ----------
 export default function ChatPage() {
-  // ----------- States -----------
+  // -------- Chat State --------
   const [messages, setMessages] = useState<Message[]>([])
-  const [newMessage, setNewMessage] = useState('') // typed text
-  const [selectedAlbum, setSelectedAlbum] = useState<Array<{ url: string; full: string }> | null>(null)
+  const [newMessage, setNewMessage] = useState('')  // typed text
   const [phoneNumber, setPhoneNumber] = useState('')
-  const [isRecording, setIsRecording] = useState(false) // true while user is holding mic
+
+  // -------- Album Modal --------
+  const [selectedAlbum, setSelectedAlbum] = useState<Array<{ url: string; full: string }> | null>(null)
+
+  // -------- Voice Recording --------
+  const [isRecording, setIsRecording] = useState(false)
   const [recorder, setRecorder] = useState<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([]) // store audio data here
 
-  // We'll store recorded chunks here
-  const chunksRef = useRef<Blob[]>([])
-
-  // Basic config
+  // Hardcoded client info
   const clientId = 'DREAM_HOMES'
   const STORAGE_KEY = phoneNumber ? `chat_${phoneNumber}` : 'myChatMessages'
 
-  // ----------- Load/Init phone number -----------
+  // ==============================
+  //   1) On Load: phone number
+  // ==============================
   useEffect(() => {
     const storedNumber = localStorage.getItem('phone_number')
     if (storedNumber) {
@@ -62,7 +67,9 @@ export default function ChatPage() {
     }
   }, [])
 
-  // ----------- Load messages -----------
+  // ==============================
+  //   2) Load chat from storage
+  // ==============================
   useEffect(() => {
     if (!phoneNumber) return
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -71,6 +78,7 @@ export default function ChatPage() {
         const parsed = JSON.parse(saved) as Message[]
         if (Array.isArray(parsed)) {
           setMessages(parsed)
+          // Update global ID so we don't reuse
           const maxId = parsed.reduce((acc, msg) => Math.max(acc, msg.id), 0)
           globalMessageId = maxId + 1
         }
@@ -80,20 +88,26 @@ export default function ChatPage() {
     }
   }, [phoneNumber])
 
-  // ----------- Persist messages -----------
+  // ==============================
+  //   3) Persist chat changes
+  // ==============================
   useEffect(() => {
     if (!phoneNumber) return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
   }, [messages, phoneNumber])
 
-  // ----------- Clear chat -----------
+  // ==============================
+  //   CLEAR chat
+  // ==============================
   const handleClearChat = () => {
     setMessages([])
     localStorage.removeItem(STORAGE_KEY)
     globalMessageId = 1
   }
 
-  // ----------- Album Handlers -----------
+  // ==============================
+  //   ALBUM MODAL HANDLERS
+  // ==============================
   const handleOpenAlbum = (images: Array<{ url: string; full: string }>) => {
     setSelectedAlbum(images)
   }
@@ -107,7 +121,9 @@ export default function ChatPage() {
     setSelectedAlbum(null)
   }
 
-  // ----------- Send Text to Server -----------
+  // ==============================
+  //   SEND TEXT -> API
+  // ==============================
   const handleSendText = async () => {
     if (!newMessage.trim()) return
 
@@ -120,24 +136,25 @@ export default function ChatPage() {
     }
     setMessages((prev) => [...prev, userMsg])
 
-    // 2) Prepare payload
+    // 2) Clear the input
+    setNewMessage('')
+
+    // 3) Prepare payload
     const payload = {
       phone_number: phoneNumber,
-      query: newMessage,
+      query: userMsg.content,
       client_id: clientId,
       platform: 'website',
     }
 
-    // 3) Clear text field immediately
-    setNewMessage('')
-
-    // 4) Call API
+    // 4) Call the backend
     try {
       const response = await fetch('https://api.lenaai.net/langgraph_chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
+
       if (!response.ok) {
         console.error('Server returned error:', response.status)
       }
@@ -148,7 +165,7 @@ export default function ChatPage() {
       // 5) Build new server messages
       const newMessages: Message[] = []
 
-      // main text
+      // a) main text
       newMessages.push({
         id: getNextId(),
         type: 'text',
@@ -156,11 +173,12 @@ export default function ChatPage() {
         sender: 'server',
       })
 
-      // properties
+      // b) properties
       if (Array.isArray(data.properties)) {
         data.properties.forEach((prop: any) => {
           const description = prop.description || ''
           const images = prop.metadata?.images || []
+
           if (description) {
             newMessages.push({
               id: getNextId(),
@@ -184,37 +202,44 @@ export default function ChatPage() {
         })
       }
 
-      // 6) Append
+      // 6) Append server messages
       setMessages((prev) => [...prev, ...newMessages])
     } catch (err) {
       console.error('Error calling API:', err)
     }
   }
 
-  // ----------- Voice Recording Logic -----------
+  // ==============================
+  //   VOICE RECORDING
+  // ==============================
   const handleStartRecording = async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      alert('Voice recording not supported in this browser.')
+    console.log('handleStartRecording invoked')
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert('MediaRecorder not supported')
       return
     }
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mediaRecorder = new MediaRecorder(stream)
-      chunksRef.current = [] // reset
+      chunksRef.current = []
 
+      mediaRecorder.onstart = () => {
+        console.log('MediaRecorder onstart')
+      }
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
+          console.log('Received audio data:', e.data.size, 'bytes')
           chunksRef.current.push(e.data)
         }
       }
-
       mediaRecorder.onstop = () => {
-        // we have all chunks, create final blob
+        console.log('MediaRecorder onstop, chunk count:', chunksRef.current.length)
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
         const url = URL.createObjectURL(blob)
-        // send as voice
         sendVoiceMessage(url)
+      }
+      mediaRecorder.onerror = (err) => {
+        console.error('MediaRecorder error:', err)
       }
 
       mediaRecorder.start()
@@ -227,30 +252,34 @@ export default function ChatPage() {
   }
 
   const handleStopRecording = () => {
+    console.log('handleStopRecording invoked')
     if (recorder) {
       recorder.stop()
       setRecorder(null)
     }
     setIsRecording(false)
-    console.log('Recording stopped')
+    console.log('Stopped recording')
   }
 
+  // Called when we finalize an audio message
   const sendVoiceMessage = (audioUrl: string) => {
-    // 1) Add local user voice message to chat
+    console.log('sendVoiceMessage with audio:', audioUrl)
+    // 1) user voice message
     const voiceMsg: Message = {
       id: getNextId(),
       type: 'voice',
-      content: audioUrl, // store as string
+      content: audioUrl, // we store the blob URL
       sender: 'user',
     }
     setMessages((prev) => [...prev, voiceMsg])
 
-    // 2) Optionally, send to server if you want to handle voice server-side
-    //   For now, we won't call the server endpoint for voice.
-    //   But you could do something similar to handleSendText.
+    // 2) Optionally send to server if needed
+    // e.g. to handle voice messages server-side, you'd do a fetch here
   }
 
-  // ------------- Render -------------
+  // ==============================
+  //   RENDER
+  // ==============================
   return (
     <div style={styles.container}>
       {/* Header */}
@@ -264,17 +293,17 @@ export default function ChatPage() {
         </button>
       </header>
 
-      {/* User phone */}
+      {/* Info: phone number */}
       <div style={{ padding: '0 10px', fontStyle: 'italic' }}>
         Your Phone Number: {phoneNumber || 'loading...'}
       </div>
 
-      {/* Clear chat */}
+      {/* Clear Chat */}
       <button style={styles.clearButton} onClick={handleClearChat}>
         Clear Chat
       </button>
 
-      {/* Chat messages */}
+      {/* Chat Area */}
       <div style={styles.chatArea}>
         {messages.map((msg) => (
           <MessageBubble
@@ -285,7 +314,7 @@ export default function ChatPage() {
         ))}
       </div>
 
-      {/* Footer */}
+      {/* Footer with text input or record icon */}
       <footer style={styles.footer}>
         <input
           type="text"
@@ -295,28 +324,25 @@ export default function ChatPage() {
           onChange={(e) => setNewMessage(e.target.value)}
         />
 
-        {/* 
-          If user has typed something, show "Send" button 
-          Otherwise, show mic for voice recording
-        */}
         {newMessage.trim().length > 0 ? (
+          // If user typed something, show "Send"
             <button style={styles.sendButton} onClick={handleSendText}>
-             ➤
+            ➤
             </button>
         ) : (
+          // If no text, show the record icon
           <div
             style={{
               ...styles.recordIconContainer,
               backgroundColor: isRecording ? 'red' : '#25D366',
-              width: 40,
-              height: 40,
-              borderRadius: 20,
             }}
             onPointerDown={handleStartRecording}
             onPointerUp={handleStopRecording}
+            onTouchStart={handleStartRecording}
+            onTouchEnd={handleStopRecording}
           >
             <div style={styles.recordIcon}>
-              {isRecording ? 'Rec' : '🎤'}
+              {isRecording ? 'REC' : '🎤'}
             </div>
           </div>
         )}
@@ -334,7 +360,7 @@ export default function ChatPage() {
   )
 }
 
-// ------------------ Bubble Component ------------------
+// =============== MessageBubble Component ===============
 function MessageBubble({
   message,
   onOpenAlbum,
@@ -350,7 +376,6 @@ function MessageBubble({
       return <div style={bubbleStyle}>{message.content}</div>
 
     case 'voice':
-      // content is an audio URL
       return (
         <div style={bubbleStyle}>
           🎤 Voice Message:
@@ -364,7 +389,7 @@ function MessageBubble({
           <div style={bubbleStyle}>
             <AlbumBubble
               images={(message.content as Array<{ url: string; full: string }>).map(
-                (item) => item.url
+                (x) => x.url
               )}
               onOpenAlbum={() => onOpenAlbum(message.content as Array<{ url: string; full: string }>)}
             />
@@ -379,22 +404,24 @@ function MessageBubble({
 }
 
 
+// =============== Styles ===============
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
-    border: '1px solid var(--border-color)',
     display: 'flex',
     flexDirection: 'column',
     height: '100vh',
-    maxWidth: '600px',
+    maxWidth: 600,
     margin: '0 auto',
+    border: '1px solid #ccc',
+    background: 'radial-gradient(circle, #f5f5f5, #e0e0e0)',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '10px',
-    backgroundColor: 'var(--header-bg)',
-    borderBottom: '1px solid var(--border-color)',
+    borderBottom: '1px solid #ccc',
+    backgroundColor: '#f5f5f5',
   },
   callButton: {
     cursor: 'pointer',
@@ -407,24 +434,24 @@ const styles: { [key: string]: React.CSSProperties } = {
   clearButton: {
     margin: '5px 10px',
     padding: '5px 10px',
-    border: '1px solid var(--border-color)',
-    backgroundColor: '#f0f0f0',
+    border: '1px solid #ccc',
     cursor: 'pointer',
     borderRadius: '4px',
+    backgroundColor: '#f0f0f0',
   },
   chatArea: {
     flex: 1,
-    padding: '10px',
-    overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
+    padding: '10px',
+    overflowY: 'auto',
     backgroundColor: '#fafafa',
   },
   userBubble: {
     alignSelf: 'flex-end',
-    backgroundColor: 'var(--user-bubble-bg)',
-    color: 'var(--user-bubble-text)',
+    backgroundColor: '#DCF8C6',
+    color: '#000',
     padding: '10px',
     borderRadius: '8px',
     maxWidth: '60%',
@@ -432,20 +459,20 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   serverBubble: {
     alignSelf: 'flex-start',
-    backgroundColor: 'var(--server-bubble-bg)',
-    color: 'var(--server-bubble-text)',
-    border: '1px solid var(--border-color)',
+    backgroundColor: '#fff',
+    color: '#000',
     padding: '10px',
     borderRadius: '8px',
     maxWidth: '60%',
     whiteSpace: 'pre-wrap',
+    border: '1px solid #ccc',
   },
   footer: {
     display: 'flex',
     alignItems: 'center',
     borderTop: '1px solid #ccc',
     padding: '10px',
-    background: '#f5f5f5',
+    backgroundColor: '#f5f5f5',
   },
   input: {
     flex: 1,
@@ -465,11 +492,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '4px',
   },
   recordIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    // The background color changes to red if isRecording
   },
   recordIcon: {
     color: '#fff',
