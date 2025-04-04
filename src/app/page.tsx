@@ -373,7 +373,7 @@ function MessageBubble({
 
   switch (message.type) {
     case 'text':
-      return <div style={bubbleStyle}>{message.content}</div>
+      return <div style={bubbleStyle}>{message.content as string}</div>
 
     case 'voice':
       return (
