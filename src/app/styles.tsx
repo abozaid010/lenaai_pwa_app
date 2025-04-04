@@ -20,7 +20,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   callButton: {
     cursor: 'pointer',
     border: 'none',
-    backgroundColor: '#0084ff',
+    backgroundColor: '#25D366',
     color: '#fff',
     padding: '5px 10px',
     borderRadius: '4px',

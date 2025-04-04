@@ -51,7 +51,7 @@ export default function ChatPage() {
   const chunksRef = useRef<Blob[]>([]) // store audio data here
 
   // Hardcoded client info
-  const clientId = 'DREAM_HOMES'
+  const clientId = 'ALL'
   const STORAGE_KEY = phoneNumber ? `chat_${phoneNumber}` : 'myChatMessages'
 
   // ==============================
@@ -105,7 +105,20 @@ export default function ChatPage() {
     localStorage.removeItem(STORAGE_KEY)
     globalMessageId = 1
   }
+  function renderChatHeader() {
+    return <div> 
+   
+      {/* Info: phone number */}
+      <div style={{ padding: '0 10px', fontStyle: 'italic' }}>
+        Your Phone Number: {phoneNumber || 'loading...'}
+      </div>
 
+      {/* Clear Chat */}
+      <button style={styles.clearButton} onClick={handleClearChat}>
+        Clear Chat
+      </button>
+      </div>
+  }
   // ==============================
   //   ALBUM MODAL HANDLERS
   // ==============================
@@ -290,19 +303,11 @@ export default function ChatPage() {
           style={styles.callButton}
           onClick={() => (window.location.href = 'tel:+201020914828')}
         >
-          Call
+          <div >📞</div>
         </button>
       </header>
 
-      {/* Info: phone number */}
-      <div style={{ padding: '0 10px', fontStyle: 'italic' }}>
-        Your Phone Number: {phoneNumber || 'loading...'}
-      </div>
-
-      {/* Clear Chat */}
-      <button style={styles.clearButton} onClick={handleClearChat}>
-        Clear Chat
-      </button>
+      {/* {renderChatHeader()} */}
 
       {/* Chat Area */}
       <div style={styles.chatArea}>
