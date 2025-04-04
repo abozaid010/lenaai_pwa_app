@@ -1,39 +1,13 @@
 'use client'
-
 import React, { useEffect, useState, useRef } from 'react'
-
-// If you have global CSS or want to rely on CSS variables (dark mode), do:
 import './globals.css'
-
-// Next.js <Image /> for future expansions if you like
 import styles from './styles'
 import Image from 'next/image'
 import AlbumBubble from '../components/AlbumBubble'
 import AlbumModal from '../components/AlbumModal'
-// import styles from './styles'
-// ------------------ Types ------------------
-type Message = {
-  id: number
-  type: 'text' | 'voice' | 'imageAlbum'
-  content: string | string[] | Array<{ url: string; full: string }>
-  sender: 'user' | 'server'
-}
-
-// ---------- Helper Functions ----------
-let globalMessageId = 1
-function getNextId() {
-  return globalMessageId++
-}
-
-function getRandomEgyptPhoneNumber(): string {
-  const prefixes = ['010', '011', '012', '015']
-  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]
-  let rest = ''
-  for (let i = 0; i < 8; i++) {
-    rest += Math.floor(Math.random() * 10)
-  }
-  return prefix + rest
-}
+import Message from '../types/Message'
+import MessageBubble from '../components/MessageBubble'
+import Helper from '../utils/Helper'
 
 // ---------- MAIN CHAT PAGE COMPONENT ----------
 export default function ChatPage() {
@@ -62,7 +36,7 @@ export default function ChatPage() {
     if (storedNumber) {
       setPhoneNumber(storedNumber)
     } else {
-      const newNumber = getRandomEgyptPhoneNumber()
+      const newNumber = Helper.getRandomEgyptPhoneNumber()
       setPhoneNumber(newNumber)
       localStorage.setItem('phone_number', newNumber)
     }
@@ -81,7 +55,7 @@ export default function ChatPage() {
           setMessages(parsed)
           // Update global ID so we don't reuse
           const maxId = parsed.reduce((acc, msg) => Math.max(acc, msg.id), 0)
-          globalMessageId = maxId + 1
+          Helper.globalMessageId = maxId + 1
         }
       } catch (err) {
         console.error('Failed to parse saved messages:', err)
@@ -103,7 +77,7 @@ export default function ChatPage() {
   const handleClearChat = () => {
     setMessages([])
     localStorage.removeItem(STORAGE_KEY)
-    globalMessageId = 1
+    Helper.globalMessageId = 1
   }
   function renderChatHeader() {
     return <div> 
@@ -301,7 +275,7 @@ export default function ChatPage() {
         <div>LenaAI Chat</div>
         <button
           style={styles.callButton}
-          onClick={() => (window.location.href = 'tel:+201020914828')}
+          onClick={() => (window.location.href = 'tel:+201016080323')}
         >
           <div >📞</div>
         </button>
@@ -364,47 +338,4 @@ export default function ChatPage() {
       />
     </div>
   )
-}
-
-// =============== MessageBubble Component ===============
-function MessageBubble({
-  message,
-  onOpenAlbum,
-}: {
-  message: Message
-  onOpenAlbum: (imgs: Array<{ url: string; full: string }>) => void
-}) {
-  const bubbleStyle =
-    message.sender === 'user' ? styles.userBubble : styles.serverBubble
-
-  switch (message.type) {
-    case 'text':
-      return <div style={bubbleStyle}>{message.content as string}</div>
-
-    case 'voice':
-      return (
-        <div style={bubbleStyle}>
-          🎤 Voice Message:
-          <audio controls src={message.content as string} style={{ display: 'block', marginTop: 5 }} />
-        </div>
-      )
-
-    case 'imageAlbum':
-      if (Array.isArray(message.content)) {
-        return (
-          <div style={bubbleStyle}>
-            <AlbumBubble
-              images={(message.content as Array<{ url: string; full: string }>).map(
-                (x) => x.url
-              )}
-              onOpenAlbum={() => onOpenAlbum(message.content as Array<{ url: string; full: string }>)}
-            />
-          </div>
-        )
-      }
-      return null
-
-    default:
-      return null
-  }
 }
