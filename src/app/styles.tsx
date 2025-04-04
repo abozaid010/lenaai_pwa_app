@@ -81,19 +81,28 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: 'none',
     backgroundColor: '#25D366',
     color: '#fff',
-    padding: '8px 14px',
+    width: '40px',
+    height: '40px',
     fontSize: '16px',
-    borderRadius: '4px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  
   recordIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    // The background color changes to red if isRecording
   },
   recordIcon: {
     color: '#fff',
     fontSize: 14,
   },
 }
+
+export default styles;

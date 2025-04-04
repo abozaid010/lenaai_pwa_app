@@ -6,6 +6,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import './globals.css'
 
 // Next.js <Image /> for future expansions if you like
+import styles from './styles'
 import Image from 'next/image'
 import AlbumBubble from '../components/AlbumBubble'
 import AlbumModal from '../components/AlbumModal'
@@ -401,112 +402,4 @@ function MessageBubble({
     default:
       return null
   }
-}
-
-
-// =============== Styles ===============
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100vh',
-    maxWidth: 600,
-    margin: '0 auto',
-    border: '1px solid #ccc',
-    background: 'radial-gradient(circle, #f5f5f5, #e0e0e0)',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '10px',
-    borderBottom: '1px solid #ccc',
-    backgroundColor: '#f5f5f5',
-  },
-  callButton: {
-    cursor: 'pointer',
-    border: 'none',
-    backgroundColor: '#0084ff',
-    color: '#fff',
-    padding: '5px 10px',
-    borderRadius: '4px',
-  },
-  clearButton: {
-    margin: '5px 10px',
-    padding: '5px 10px',
-    border: '1px solid #ccc',
-    cursor: 'pointer',
-    borderRadius: '4px',
-    backgroundColor: '#f0f0f0',
-  },
-  chatArea: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    padding: '10px',
-    overflowY: 'auto',
-    backgroundColor: '#fafafa',
-  },
-  userBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#DCF8C6',
-    color: '#000',
-    padding: '10px',
-    borderRadius: '8px',
-    maxWidth: '60%',
-    whiteSpace: 'pre-wrap',
-  },
-  serverBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#fff',
-    color: '#000',
-    padding: '10px',
-    borderRadius: '8px',
-    maxWidth: '60%',
-    whiteSpace: 'pre-wrap',
-    border: '1px solid #ccc',
-  },
-  footer: {
-    display: 'flex',
-    alignItems: 'center',
-    borderTop: '1px solid #ccc',
-    padding: '10px',
-    backgroundColor: '#f5f5f5',
-  },
-  input: {
-    flex: 1,
-    padding: '8px',
-    fontSize: '16px',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-    marginRight: '10px',
-  },
-  sendButton: {
-    cursor: 'pointer',
-    border: 'none',
-    backgroundColor: '#25D366',
-    color: '#fff',
-    width: '40px',
-    height: '40px',
-    fontSize: '16px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  
-  recordIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-  },
-  recordIcon: {
-    color: '#fff',
-    fontSize: 14,
-  },
 }
