@@ -1,11 +1,10 @@
 'use client'
 
-// app/page.tsx
-import React, { useState } from 'react'
-import AlbumBubble from '@/components/AlbumBubble'     // Adjust the path to match your folder structure
-import AlbumModal from '@/components/AlbumModal'       // Same as above
+import React, { useEffect, useState } from 'react'
+import AlbumBubble from '../components/AlbumBubble'
+import AlbumModal from '../components/AlbumModal'
 
-// Message Type
+// A helper type for message objects
 type Message = {
   id: number
   type: 'text' | 'voice' | 'imageAlbum'
@@ -13,16 +12,47 @@ type Message = {
   sender: 'user' | 'server'
 }
 
-export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [newMessage, setNewMessage] = useState('')
-  const [selectedAlbum, setSelectedAlbum] = useState<string[] | null>(null)
+// Utility function to generate a random Egyptian phone number
+function getRandomEgyptPhoneNumber(): string {
+  const prefixes = ['010', '011', '012', '015']
+  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]
 
-  // Hardcode or load from user config
-  const phoneNumber = '01010109999912'
+  let rest = ''
+  for (let i = 0; i < 8; i++) {
+    rest += Math.floor(Math.random() * 10) // random digit [0..9]
+  }
+
+  return prefix + rest // e.g. '01012345678'
+}
+
+export default function ChatPage() {
+  // Chat messages
+  const [messages, setMessages] = useState<Message[]>([])
+  // New message text
+  const [newMessage, setNewMessage] = useState('')
+  // For album modal
+  const [selectedAlbum, setSelectedAlbum] = useState<string[] | null>(null)
+  // Persisted phone number
+  const [phoneNumber, setPhoneNumber] = useState('')
+
+  // Hardcoded client ID (unchanged)
   const clientId = 'DREAM_HOMES'
 
-  // Handlers for the Album Modal
+  // On first load or refresh, check localStorage
+  useEffect(() => {
+    const storedNumber = localStorage.getItem('phone_number')
+    if (storedNumber) {
+      // Use existing phone number
+      setPhoneNumber(storedNumber)
+    } else {
+      // Generate a new random number and store it
+      const newNumber = getRandomEgyptPhoneNumber()
+      setPhoneNumber(newNumber)
+      localStorage.setItem('phone_number', newNumber)
+    }
+  }, [])
+
+  // Handle album modal
   const handleOpenAlbum = (images: string[]) => {
     setSelectedAlbum(images)
   }
@@ -38,11 +68,11 @@ export default function ChatPage() {
     setSelectedAlbum(null)
   }
 
-  // Send user message to LenaAI endpoint
+  // Send message to LenaAI
   const handleSend = async () => {
     if (!newMessage.trim()) return
 
-    // (1) Show user's message immediately
+    // 1) Show user's message immediately
     const userMsgId = messages.length + 1
     const userMsg: Message = {
       id: userMsgId,
@@ -52,16 +82,15 @@ export default function ChatPage() {
     }
     setMessages((prev) => [...prev, userMsg])
 
-    // (2) Prepare payload
+    // 2) Prepare payload
     const payload = {
-      phone_number: phoneNumber,
+      phone_number: phoneNumber, // <--- Using the random/persisted number
       query: newMessage,
       client_id: clientId,
       platform: 'website',
     }
 
     try {
-      // (3) POST to the API
       console.log('Sending payload:', payload)
       const response = await fetch('https://api.lenaai.net/langgraph_chat', {
         method: 'POST',
@@ -73,14 +102,11 @@ export default function ChatPage() {
         console.error('Server returned error status:', response.status)
       }
 
-      // (4) Parse server response
       const data = await response.json()
       console.log('API Response:', data)
 
-      // (5) Build new server messages
+      // 3) Build new server messages
       const newMessages: Message[] = []
-
-      // a) Main text message
       const serverMsgId = userMsgId + 1
       newMessages.push({
         id: serverMsgId,
@@ -89,29 +115,27 @@ export default function ChatPage() {
         sender: 'server',
       })
 
-      // b) Check if `properties` is an array
+      // If 'properties' is an array, show descriptions & images
       if (Array.isArray(data.properties)) {
         data.properties.forEach((prop: any) => {
           const description = prop.description || ''
           const images = prop.metadata?.images || []
 
-          // b1) Add property description (text)
           if (description) {
-            const descMsgId = messages.length + newMessages.length + 1
+            const descId = messages.length + newMessages.length + 1
             newMessages.push({
-              id: descMsgId,
+              id: descId,
               type: 'text',
               content: description,
               sender: 'server',
             })
           }
 
-          // b2) Add album bubble if images exist
           if (Array.isArray(images) && images.length > 0) {
-            const albumMsgId = messages.length + newMessages.length + 1
+            const albumId = messages.length + newMessages.length + 1
             const imageUrls = images.map((imgObj: { url: string }) => imgObj.url)
             newMessages.push({
-              id: albumMsgId,
+              id: albumId,
               type: 'imageAlbum',
               content: imageUrls,
               sender: 'server',
@@ -120,13 +144,13 @@ export default function ChatPage() {
         })
       }
 
-      // (6) Append new server messages to state
+      // 4) Update chat state with new messages
       setMessages((prev) => [...prev, ...newMessages])
     } catch (error) {
       console.error('Error calling the API:', error)
     }
 
-    // (7) Clear input
+    // 5) Clear input
     setNewMessage('')
   }
 
@@ -142,6 +166,11 @@ export default function ChatPage() {
           Call
         </button>
       </header>
+
+      {/* (Optional) Display the user's random phone number */}
+      <div style={{ padding: '0 10px', fontStyle: 'italic' }}>
+        Your Phone Number: {phoneNumber || 'loading...'}
+      </div>
 
       {/* Chat Area */}
       <div style={styles.chatArea}>
@@ -180,7 +209,7 @@ export default function ChatPage() {
   )
 }
 
-// Renders each message bubble in the chat
+// Bubble Component
 function MessageBubble({
   message,
   onOpenAlbum,
@@ -194,14 +223,12 @@ function MessageBubble({
   switch (message.type) {
     case 'text':
       return <div style={bubbleStyle}>{message.content}</div>
-
     case 'voice':
       return (
         <div style={bubbleStyle}>
           <span>🎤 Voice Message:</span> {message.content}
         </div>
       )
-
     case 'imageAlbum':
       if (Array.isArray(message.content)) {
         return (
@@ -214,13 +241,12 @@ function MessageBubble({
         )
       }
       return null
-
     default:
       return null
   }
 }
 
-// Inline styles (quick prototype)
+// Inline styles
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
     display: 'flex',
