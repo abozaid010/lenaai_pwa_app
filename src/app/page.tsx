@@ -1,65 +1,103 @@
 'use client'
+import React, { useEffect, useState } from 'react'
 import './globals.css'
 
-import React, { useEffect, useState } from 'react'
+// Import Next.js Image
+import Image from 'next/image'
+
 import AlbumBubble from '../components/AlbumBubble'
 import AlbumModal from '../components/AlbumModal'
 
-// A helper type for message objects
 type Message = {
   id: number
   type: 'text' | 'voice' | 'imageAlbum'
-  content: string | string[]
+  // content can be string, string[], or array of { url, full }
+  content: string | string[] | Array<{ url: string; full: string }>
   sender: 'user' | 'server'
 }
 
-// Utility function to generate a random Egyptian phone number
+// For phone number generation
 function getRandomEgyptPhoneNumber(): string {
   const prefixes = ['010', '011', '012', '015']
   const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]
-
   let rest = ''
   for (let i = 0; i < 8; i++) {
-    rest += Math.floor(Math.random() * 10) // random digit [0..9]
+    rest += Math.floor(Math.random() * 10)
   }
+  return prefix + rest
+}
 
-  return prefix + rest // e.g. '01012345678'
+/**
+ * Simple ID generator to avoid duplicate keys.
+ * We'll increment for each new message.
+ */
+let globalMessageId = 1
+function getNextId() {
+  return globalMessageId++
 }
 
 export default function ChatPage() {
-  // Chat messages
+  // Chat
   const [messages, setMessages] = useState<Message[]>([])
-  // New message text
+  // Input
   const [newMessage, setNewMessage] = useState('')
-  // For album modal
-  const [selectedAlbum, setSelectedAlbum] = useState<string[] | null>(null)
-  // Persisted phone number
+  // Album
+  const [selectedAlbum, setSelectedAlbum] = useState<Array<{ url: string; full: string }> | null>(null)
+  // Phone
   const [phoneNumber, setPhoneNumber] = useState('')
-
-  // Hardcoded client ID (unchanged)
+  
   const clientId = 'DREAM_HOMES'
+  const STORAGE_KEY = phoneNumber ? `chat_${phoneNumber}` : 'myChatMessages'
 
-  // On first load or refresh, check localStorage
+  // 1) On load, get or set phone_number
   useEffect(() => {
     const storedNumber = localStorage.getItem('phone_number')
     if (storedNumber) {
-      // Use existing phone number
       setPhoneNumber(storedNumber)
     } else {
-      // Generate a new random number and store it
       const newNumber = getRandomEgyptPhoneNumber()
       setPhoneNumber(newNumber)
       localStorage.setItem('phone_number', newNumber)
     }
   }, [])
 
-  // Handle album modal
-  const handleOpenAlbum = (images: string[]) => {
+  // 2) Load messages from localStorage
+  useEffect(() => {
+    if (!phoneNumber) return
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as Message[]
+        if (Array.isArray(parsed)) {
+          setMessages(parsed)
+          // Also update globalMessageId so new messages don’t overlap
+          const maxId = parsed.reduce((acc, msg) => Math.max(acc, msg.id), 0)
+          globalMessageId = maxId + 1
+        }
+      } catch (err) {
+        console.error('Failed to parse saved messages:', err)
+      }
+    }
+  }, [phoneNumber])
+
+  // 3) Persist to localStorage whenever messages changes
+  useEffect(() => {
+    if (!phoneNumber) return
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+  }, [messages, phoneNumber])
+
+  // Clear chat
+  const handleClearChat = () => {
+    setMessages([])
+    localStorage.removeItem(STORAGE_KEY)
+    globalMessageId = 1
+  }
+
+  // Album
+  const handleOpenAlbum = (images: Array<{ url: string; full: string }>) => {
     setSelectedAlbum(images)
   }
-  const handleCloseAlbum = () => {
-    setSelectedAlbum(null)
-  }
+  const handleCloseAlbum = () => setSelectedAlbum(null)
   const handleLikeIt = () => {
     console.log('User clicked "Like it"')
     setSelectedAlbum(null)
@@ -69,30 +107,29 @@ export default function ChatPage() {
     setSelectedAlbum(null)
   }
 
-  // Send message to LenaAI
+  // Send message
   const handleSend = async () => {
     if (!newMessage.trim()) return
 
-    // 1) Show user's message immediately
-    const userMsgId = messages.length + 1
+    // a) user message
     const userMsg: Message = {
-      id: userMsgId,
+      id: getNextId(),
       type: 'text',
       content: newMessage,
       sender: 'user',
     }
     setMessages((prev) => [...prev, userMsg])
 
-    // 2) Prepare payload
+    // b) payload
     const payload = {
-      phone_number: phoneNumber, // <--- Using the random/persisted number
+      phone_number: phoneNumber,
       query: newMessage,
       client_id: clientId,
       platform: 'website',
     }
-
+    // d) Clear text field
+    setNewMessage('')
     try {
-      console.log('Sending payload:', payload)
       const response = await fetch('https://api.lenaai.net/langgraph_chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -100,91 +137,94 @@ export default function ChatPage() {
       })
 
       if (!response.ok) {
-        console.error('Server returned error status:', response.status)
+        console.error('Server returned error:', response.status)
       }
 
       const data = await response.json()
-      console.log('API Response:', data)
+      console.log('Server data:', data)
 
-      // 3) Build new server messages
+      // c) server messages
       const newMessages: Message[] = []
-      const serverMsgId = userMsgId + 1
+
+      // Main server text
       newMessages.push({
-        id: serverMsgId,
+        id: getNextId(),
         type: 'text',
         content: data.message || '(No message received)',
         sender: 'server',
       })
 
-      // If 'properties' is an array, show descriptions & images
+      // If properties is array
       if (Array.isArray(data.properties)) {
         data.properties.forEach((prop: any) => {
           const description = prop.description || ''
           const images = prop.metadata?.images || []
 
+          // description bubble
           if (description) {
-            const descId = messages.length + newMessages.length + 1
             newMessages.push({
-              id: descId,
+              id: getNextId(),
               type: 'text',
               content: description,
               sender: 'server',
             })
           }
 
+          // image album
           if (Array.isArray(images) && images.length > 0) {
-            const albumId = messages.length + newMessages.length + 1
-            const imageUrls = images.map((imgObj: { url: string }) => imgObj.url)
+            const albumItems = images.map((imgObj: any) => ({
+              url: imgObj.url,
+              full: imgObj.url,
+            }))
             newMessages.push({
-              id: albumId,
+              id: getNextId(),
               type: 'imageAlbum',
-              content: imageUrls,
+              content: albumItems,
               sender: 'server',
             })
           }
         })
       }
 
-      // 4) Update chat state with new messages
+      // Add them to state
       setMessages((prev) => [...prev, ...newMessages])
-    } catch (error) {
-      console.error('Error calling the API:', error)
+    } catch (err) {
+      console.error('Error calling API:', err)
     }
 
-    // 5) Clear input
-    setNewMessage('')
+
   }
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <header style={styles.header}>
         <div>LenaAI Chat</div>
         <button
           style={styles.callButton}
-          onClick={() => alert('Call clicked!')}
+          onClick={() => (window.location.href = 'tel:+201020914828')}
         >
           Call
         </button>
       </header>
 
-      {/* (Optional) Display the user's random phone number */}
       <div style={{ padding: '0 10px', fontStyle: 'italic' }}>
         Your Phone Number: {phoneNumber || 'loading...'}
       </div>
 
-      {/* Chat Area */}
+      <button style={styles.clearButton} onClick={handleClearChat}>
+        Clear Chat
+      </button>
+
       <div style={styles.chatArea}>
         {messages.map((msg) => (
           <MessageBubble
-            key={msg.id}
+            key={msg.id} // now guaranteed unique
             message={msg}
             onOpenAlbum={handleOpenAlbum}
           />
         ))}
       </div>
 
-      {/* Footer Input */}
       <footer style={styles.footer}>
         <input
           type="text"
@@ -200,7 +240,7 @@ export default function ChatPage() {
 
       {/* Album Modal */}
       <AlbumModal
-        images={selectedAlbum || []}
+        images={(selectedAlbum || []).map((item) => item.url)}
         isOpen={!!selectedAlbum}
         onClose={handleCloseAlbum}
         onLike={handleLikeIt}
@@ -216,7 +256,7 @@ function MessageBubble({
   onOpenAlbum,
 }: {
   message: Message
-  onOpenAlbum: (imgs: string[]) => void
+  onOpenAlbum: (imgs: Array<{ url: string; full: string }>) => void
 }) {
   const bubbleStyle =
     message.sender === 'user' ? styles.userBubble : styles.serverBubble
@@ -224,40 +264,43 @@ function MessageBubble({
   switch (message.type) {
     case 'text':
       return <div style={bubbleStyle}>{message.content}</div>
+
     case 'voice':
       return (
         <div style={bubbleStyle}>
           <span>🎤 Voice Message:</span> {message.content}
         </div>
       )
+
     case 'imageAlbum':
       if (Array.isArray(message.content)) {
+        // e.g. [{ url, full }, ...]
         return (
           <div style={bubbleStyle}>
             <AlbumBubble
-              images={message.content}
-              onOpenAlbum={() => onOpenAlbum(message.content as string[])}
+              images={(message.content as Array<{ url: string; full: string }>).map(item => item.url)}
+              onOpenAlbum={() =>
+                onOpenAlbum(message.content as Array<{ url: string; full: string }>)
+              }
             />
           </div>
         )
       }
       return null
+
     default:
       return null
   }
 }
 
-// Inline styles
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
-    // Let body handle overall background: we just keep layout stuff
-    border: '1px solid var(--border-color)', 
+    border: '1px solid var(--border-color)',
     display: 'flex',
     flexDirection: 'column',
     height: '100vh',
     maxWidth: '600px',
     margin: '0 auto',
-    // color: var(--text-color) is inherited from body, or you can set it explicitly
   },
   header: {
     display: 'flex',
@@ -266,6 +309,31 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '10px',
     backgroundColor: 'var(--header-bg)',
     borderBottom: '1px solid var(--border-color)',
+  },
+  callButton: {
+    cursor: 'pointer',
+    border: 'none',
+    backgroundColor: '#0084ff',
+    color: '#fff',
+    padding: '5px 10px',
+    borderRadius: '4px',
+  },
+  clearButton: {
+    margin: '5px 10px',
+    padding: '5px 10px',
+    border: '1px solid var(--border-color)',
+    backgroundColor: '#f0f0f0',
+    cursor: 'pointer',
+    borderRadius: '4px',
+  },
+  chatArea: {
+    flex: 1,
+    padding: '10px',
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    backgroundColor: '#fafafa',
   },
   userBubble: {
     alignSelf: 'flex-end',
@@ -285,24 +353,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '8px',
     maxWidth: '60%',
     whiteSpace: 'pre-wrap',
-  },
-
-  callButton: {
-    cursor: 'pointer',
-    border: 'none',
-    backgroundColor: '#0084ff',
-    color: '#fff',
-    padding: '5px 10px',
-    borderRadius: '4px',
-  },
-  chatArea: {
-    flex: 1,
-    padding: '10px',
-    overflowY: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    backgroundColor: '#fafafa',
   },
   footer: {
     display: 'flex',
@@ -327,6 +377,5 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '8px 14px',
     fontSize: '16px',
     borderRadius: '4px',
-  }
-  
+  },
 }
