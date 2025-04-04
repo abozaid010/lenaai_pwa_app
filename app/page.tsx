@@ -11,8 +11,8 @@ export default function ChatPage() {
       id: 2,
       type: 'imageAlbum',
       content: [
-        'https://via.placeholder.com/150?text=Photo+1',
-        'https://via.placeholder.com/150?text=Photo+2',
+        'https://ik.imagekit.io/lenaai/a2fb894c-70b2-4978-b714-6a1f06eb91a5_e2sL_vPC0',
+        'https://ik.imagekit.io/lenaai/tr:n-ik_ml_thumbnail/31ca16ec-e058-4f4a-9f10-c562d153bf28_FjX6r_Dmp',
       ],
     },
     { id: 3, type: 'voice', content: 'Voice message placeholder' },
