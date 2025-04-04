@@ -117,7 +117,7 @@ export default function ChatPage() {
 
     // 1) Local user message
     const userMsg: Message = {
-      id: getNextId(),
+      id: Helper.getNextId(),
       type: 'text',
       content: newMessage,
       sender: 'user',
@@ -155,7 +155,7 @@ export default function ChatPage() {
 
       // a) main text
       newMessages.push({
-        id: getNextId(),
+        id: Helper.getNextId(),
         type: 'text',
         content: data.message || '(No message received)',
         sender: 'server',
@@ -169,7 +169,7 @@ export default function ChatPage() {
 
           if (description) {
             newMessages.push({
-              id: getNextId(),
+              id: Helper.getNextId(),
               type: 'text',
               content: description,
               sender: 'server',
@@ -181,7 +181,7 @@ export default function ChatPage() {
               full: imgObj.url,
             }))
             newMessages.push({
-              id: getNextId(),
+              id: Helper.getNextId(),
               type: 'imageAlbum',
               content: albumItems,
               sender: 'server',
@@ -254,7 +254,7 @@ export default function ChatPage() {
     console.log('sendVoiceMessage with audio:', audioUrl)
     // 1) user voice message
     const voiceMsg: Message = {
-      id: getNextId(),
+      id: Helper.getNextId(),
       type: 'voice',
       content: audioUrl, // we store the blob URL
       sender: 'user',
