@@ -1,4 +1,5 @@
 'use client'
+import './globals.css'
 
 import React, { useEffect, useState } from 'react'
 import AlbumBubble from '../components/AlbumBubble'
@@ -249,21 +250,43 @@ function MessageBubble({
 // Inline styles
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
+    // Let body handle overall background: we just keep layout stuff
+    border: '1px solid var(--border-color)', 
     display: 'flex',
     flexDirection: 'column',
     height: '100vh',
     maxWidth: '600px',
     margin: '0 auto',
-    border: '1px solid #ccc',
+    // color: var(--text-color) is inherited from body, or you can set it explicitly
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '10px',
-    borderBottom: '1px solid #ccc',
-    background: '#f5f5f5',
+    backgroundColor: 'var(--header-bg)',
+    borderBottom: '1px solid var(--border-color)',
   },
+  userBubble: {
+    alignSelf: 'flex-end',
+    backgroundColor: 'var(--user-bubble-bg)',
+    color: 'var(--user-bubble-text)',
+    padding: '10px',
+    borderRadius: '8px',
+    maxWidth: '60%',
+    whiteSpace: 'pre-wrap',
+  },
+  serverBubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'var(--server-bubble-bg)',
+    color: 'var(--server-bubble-text)',
+    border: '1px solid var(--border-color)',
+    padding: '10px',
+    borderRadius: '8px',
+    maxWidth: '60%',
+    whiteSpace: 'pre-wrap',
+  },
+
   callButton: {
     cursor: 'pointer',
     border: 'none',
@@ -304,22 +327,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '8px 14px',
     fontSize: '16px',
     borderRadius: '4px',
-  },
-  userBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#DCF8C6',
-    padding: '10px',
-    borderRadius: '8px',
-    maxWidth: '60%',
-    whiteSpace: 'pre-wrap',
-  },
-  serverBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#fff',
-    border: '1px solid #ccc',
-    padding: '10px',
-    borderRadius: '8px',
-    maxWidth: '60%',
-    whiteSpace: 'pre-wrap',
-  },
+  }
+  
 }
