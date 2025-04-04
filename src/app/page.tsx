@@ -13,7 +13,6 @@ import Message from '../types/Message'
 import AlbumBubble from '../components/AlbumBubble'
 import AlbumModal from '../components/AlbumModal'
 import MessageBubble from '../components/MessageBubble'
-
 // ---------- MAIN CHAT PAGE COMPONENT ----------
 export default function ChatPage() {
   // -------- Chat State --------
@@ -86,7 +85,22 @@ export default function ChatPage() {
     localStorage.removeItem(STORAGE_KEY)
     Helper.globalMessageId = 1
   }
-
+  function headerView() {
+    return <div>
+  
+        {/* Info: phone number */}
+        <div style={{ padding: '0 10px', fontStyle: 'italic' }}>
+          Your Phone Number: {phoneNumber || 'loading...'}
+        </div>
+  
+        {/* Clear Chat */}
+        <button style={styles.clearButton} onClick={handleClearChat}>
+          Clear Chat
+        </button>
+    </div>
+  
+  }
+  
   // ==============================
   //   ALBUM MODAL HANDLERS
   // ==============================
@@ -287,15 +301,6 @@ export default function ChatPage() {
         </button>
       </header>
 
-      {/* Info: phone number */}
-      <div style={{ padding: '0 10px', fontStyle: 'italic' }}>
-        Your Phone Number: {phoneNumber || 'loading...'}
-      </div>
-
-      {/* Clear Chat */}
-      <button style={styles.clearButton} onClick={handleClearChat}>
-        Clear Chat
-      </button>
 
       {/* Chat Area */}
       <div style={styles.chatArea}>
