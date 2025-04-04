@@ -1,13 +1,14 @@
 'use client'
 
 import React, { useState } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 
 // A helper type for message objects
 type Message = {
   id: number
   type: 'text' | 'voice' | 'imageAlbum'
   content: string | string[] // for images, we store an array of URLs
-  sender: 'user' | 'server'   // helps identify who sent the message
+  sender: 'user' | 'server'  // helps identify who sent the message
 }
 
 export default function ChatPage() {
@@ -15,8 +16,8 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState('')
 
   // Hardcode or load from user config
-  const phoneNumber = '1234567890'
-  const clientId = 'myClientId'
+  const phoneNumber = '01010109999912'
+  const clientId = 'DREAM_HOMES'
 
   const handleSend = async () => {
     if (!newMessage.trim()) return
@@ -41,6 +42,7 @@ export default function ChatPage() {
 
     // 3) Make the POST request to the LenaAI endpoint
     try {
+      console.log('Sending payload:', payload)
       const response = await fetch('https://api.lenaai.net/langgraph_chat', {
         method: 'POST',
         headers: {
@@ -48,30 +50,65 @@ export default function ChatPage() {
         },
         body: JSON.stringify(payload),
       })
+
       if (!response.ok) {
         console.error('Server returned error status:', response.status)
         // You could also handle specific errors, e.g. 400, 401, 500, etc.
-      } else {
-        const data = await response.json()
-        console.log('Server data', data)
       }
 
       const data = await response.json()
       console.log('API Response:', data)
 
-      // The data should have something like: { message: "...", properties: { ... } }
-      // 4) Display server reply
+      // -----------------------------
+      // 4) Handle server message
+      // -----------------------------
+      // a) Server's main 'message' field
+      const newMessages: Message[] = []
+
       const serverMsgId = userMsgId + 1
       const serverMsg: Message = {
         id: serverMsgId,
-        type: 'text', // for now, assume text. Could be more complex if 'properties' holds images, etc.
+        type: 'text',
         content: data.message || '(No message received)',
         sender: 'server',
       }
-      setMessages((prev) => [...prev, serverMsg])
+      newMessages.push(serverMsg)
 
-      // TODO: If `properties` includes images or other content, parse them here
-      // For example, if there's an array of image URLs in data.properties, you can add a separate message for them.
+      // b) If 'properties' exist, parse them
+      if (data.properties && typeof data.properties === 'object') {
+        // Example structure: data.properties = { property_1: { description, metadata }, ... }
+        Object.keys(data.properties).forEach((key) => {
+          const prop = data.properties[key]
+          const description = prop.description || ''
+          const images = prop.metadata?.images || []
+
+          // 1. Add a text bubble for the property description
+          if (description) {
+            const descMsgId = messages.length + newMessages.length + 1
+            newMessages.push({
+              id: descMsgId,
+              type: 'text',
+              content: description,
+              sender: 'server',
+            })
+          }
+
+          // 2. Add an imageAlbum bubble if images exist
+          if (Array.isArray(images) && images.length > 0) {
+            const albumMsgId = messages.length + newMessages.length + 1
+            const imageUrls = images.map((imgObj: { url: string }) => imgObj.url)
+            newMessages.push({
+              id: albumMsgId,
+              type: 'imageAlbum',
+              content: imageUrls,
+              sender: 'server',
+            })
+          }
+        })
+      }
+
+      // Append the new server messages to state
+      setMessages((prev) => [...prev, ...newMessages])
 
     } catch (error) {
       console.error('Error calling the API:', error)
@@ -131,10 +168,10 @@ function MessageBubble({ message }: { message: Message }) {
         </div>
       )
     case 'imageAlbum':
-      // e.g. content is an array of URLs
+      // e.g., content is an array of URLs
       if (Array.isArray(message.content)) {
         return (
-          <div style={bubbleStyle}>
+          <div style={{ ...bubbleStyle, display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
             {message.content.map((imgUrl, idx) => (
               <img
                 key={idx}
@@ -152,6 +189,7 @@ function MessageBubble({ message }: { message: Message }) {
   }
 }
 
+// Inline styles for quick prototyping
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
     display: 'flex',
@@ -216,20 +254,21 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '10px',
     borderRadius: '8px',
     maxWidth: '60%',
+    whiteSpace: 'pre-wrap',
   },
   serverBubble: {
     alignSelf: 'flex-start',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fff',
     border: '1px solid #ccc',
     padding: '10px',
     borderRadius: '8px',
     maxWidth: '60%',
+    whiteSpace: 'pre-wrap',
   },
   albumImage: {
     width: '80px',
     height: '80px',
     objectFit: 'cover',
     borderRadius: '4px',
-    marginRight: '5px',
   },
 }
