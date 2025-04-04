@@ -1,22 +1,22 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+
+import React, { useEffect, useState, useRef } from 'react'
 import './globals.css'
-
-// Import Next.js Image
 import Image from 'next/image'
-
 import AlbumBubble from '../components/AlbumBubble'
 import AlbumModal from '../components/AlbumModal'
-
+// import styles from './styles'
+// ------------------ Types ------------------
 type Message = {
   id: number
   type: 'text' | 'voice' | 'imageAlbum'
-  // content can be string, string[], or array of { url, full }
+  // content can be a string, string[], or array of { url, full: string }
+  // for a voice, we might store a data URL or blob URL
   content: string | string[] | Array<{ url: string; full: string }>
   sender: 'user' | 'server'
 }
 
-// For phone number generation
+// ------------- Phone Number Generator -------------
 function getRandomEgyptPhoneNumber(): string {
   const prefixes = ['010', '011', '012', '015']
   const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]
@@ -27,29 +27,30 @@ function getRandomEgyptPhoneNumber(): string {
   return prefix + rest
 }
 
-/**
- * Simple ID generator to avoid duplicate keys.
- * We'll increment for each new message.
- */
+// ------------- ID Generator -------------
 let globalMessageId = 1
 function getNextId() {
   return globalMessageId++
 }
 
+// ------------- Main Chat Component -------------
 export default function ChatPage() {
-  // Chat
+  // ----------- States -----------
   const [messages, setMessages] = useState<Message[]>([])
-  // Input
-  const [newMessage, setNewMessage] = useState('')
-  // Album
+  const [newMessage, setNewMessage] = useState('') // typed text
   const [selectedAlbum, setSelectedAlbum] = useState<Array<{ url: string; full: string }> | null>(null)
-  // Phone
   const [phoneNumber, setPhoneNumber] = useState('')
-  
+  const [isRecording, setIsRecording] = useState(false) // true while user is holding mic
+  const [recorder, setRecorder] = useState<MediaRecorder | null>(null)
+
+  // We'll store recorded chunks here
+  const chunksRef = useRef<Blob[]>([])
+
+  // Basic config
   const clientId = 'DREAM_HOMES'
   const STORAGE_KEY = phoneNumber ? `chat_${phoneNumber}` : 'myChatMessages'
 
-  // 1) On load, get or set phone_number
+  // ----------- Load/Init phone number -----------
   useEffect(() => {
     const storedNumber = localStorage.getItem('phone_number')
     if (storedNumber) {
@@ -61,7 +62,7 @@ export default function ChatPage() {
     }
   }, [])
 
-  // 2) Load messages from localStorage
+  // ----------- Load messages -----------
   useEffect(() => {
     if (!phoneNumber) return
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -70,7 +71,6 @@ export default function ChatPage() {
         const parsed = JSON.parse(saved) as Message[]
         if (Array.isArray(parsed)) {
           setMessages(parsed)
-          // Also update globalMessageId so new messages don’t overlap
           const maxId = parsed.reduce((acc, msg) => Math.max(acc, msg.id), 0)
           globalMessageId = maxId + 1
         }
@@ -80,20 +80,20 @@ export default function ChatPage() {
     }
   }, [phoneNumber])
 
-  // 3) Persist to localStorage whenever messages changes
+  // ----------- Persist messages -----------
   useEffect(() => {
     if (!phoneNumber) return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
   }, [messages, phoneNumber])
 
-  // Clear chat
+  // ----------- Clear chat -----------
   const handleClearChat = () => {
     setMessages([])
     localStorage.removeItem(STORAGE_KEY)
     globalMessageId = 1
   }
 
-  // Album
+  // ----------- Album Handlers -----------
   const handleOpenAlbum = (images: Array<{ url: string; full: string }>) => {
     setSelectedAlbum(images)
   }
@@ -107,11 +107,11 @@ export default function ChatPage() {
     setSelectedAlbum(null)
   }
 
-  // Send message
-  const handleSend = async () => {
+  // ----------- Send Text to Server -----------
+  const handleSendText = async () => {
     if (!newMessage.trim()) return
 
-    // a) user message
+    // 1) Local user message
     const userMsg: Message = {
       id: getNextId(),
       type: 'text',
@@ -120,22 +120,24 @@ export default function ChatPage() {
     }
     setMessages((prev) => [...prev, userMsg])
 
-    // b) payload
+    // 2) Prepare payload
     const payload = {
       phone_number: phoneNumber,
       query: newMessage,
       client_id: clientId,
       platform: 'website',
     }
-    // d) Clear text field
+
+    // 3) Clear text field immediately
     setNewMessage('')
+
+    // 4) Call API
     try {
       const response = await fetch('https://api.lenaai.net/langgraph_chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-
       if (!response.ok) {
         console.error('Server returned error:', response.status)
       }
@@ -143,10 +145,10 @@ export default function ChatPage() {
       const data = await response.json()
       console.log('Server data:', data)
 
-      // c) server messages
+      // 5) Build new server messages
       const newMessages: Message[] = []
 
-      // Main server text
+      // main text
       newMessages.push({
         id: getNextId(),
         type: 'text',
@@ -154,13 +156,11 @@ export default function ChatPage() {
         sender: 'server',
       })
 
-      // If properties is array
+      // properties
       if (Array.isArray(data.properties)) {
         data.properties.forEach((prop: any) => {
           const description = prop.description || ''
           const images = prop.metadata?.images || []
-
-          // description bubble
           if (description) {
             newMessages.push({
               id: getNextId(),
@@ -169,8 +169,6 @@ export default function ChatPage() {
               sender: 'server',
             })
           }
-
-          // image album
           if (Array.isArray(images) && images.length > 0) {
             const albumItems = images.map((imgObj: any) => ({
               url: imgObj.url,
@@ -186,17 +184,76 @@ export default function ChatPage() {
         })
       }
 
-      // Add them to state
+      // 6) Append
       setMessages((prev) => [...prev, ...newMessages])
     } catch (err) {
       console.error('Error calling API:', err)
     }
-
-
   }
 
+  // ----------- Voice Recording Logic -----------
+  const handleStartRecording = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Voice recording not supported in this browser.')
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      chunksRef.current = [] // reset
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        // we have all chunks, create final blob
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        const url = URL.createObjectURL(blob)
+        // send as voice
+        sendVoiceMessage(url)
+      }
+
+      mediaRecorder.start()
+      setRecorder(mediaRecorder)
+      setIsRecording(true)
+      console.log('Recording started')
+    } catch (err) {
+      console.error('Error accessing microphone:', err)
+    }
+  }
+
+  const handleStopRecording = () => {
+    if (recorder) {
+      recorder.stop()
+      setRecorder(null)
+    }
+    setIsRecording(false)
+    console.log('Recording stopped')
+  }
+
+  const sendVoiceMessage = (audioUrl: string) => {
+    // 1) Add local user voice message to chat
+    const voiceMsg: Message = {
+      id: getNextId(),
+      type: 'voice',
+      content: audioUrl, // store as string
+      sender: 'user',
+    }
+    setMessages((prev) => [...prev, voiceMsg])
+
+    // 2) Optionally, send to server if you want to handle voice server-side
+    //   For now, we won't call the server endpoint for voice.
+    //   But you could do something similar to handleSendText.
+  }
+
+  // ------------- Render -------------
   return (
     <div style={styles.container}>
+      {/* Header */}
       <header style={styles.header}>
         <div>LenaAI Chat</div>
         <button
@@ -207,24 +264,28 @@ export default function ChatPage() {
         </button>
       </header>
 
+      {/* User phone */}
       <div style={{ padding: '0 10px', fontStyle: 'italic' }}>
         Your Phone Number: {phoneNumber || 'loading...'}
       </div>
 
+      {/* Clear chat */}
       <button style={styles.clearButton} onClick={handleClearChat}>
         Clear Chat
       </button>
 
+      {/* Chat messages */}
       <div style={styles.chatArea}>
         {messages.map((msg) => (
           <MessageBubble
-            key={msg.id} // now guaranteed unique
+            key={msg.id}
             message={msg}
             onOpenAlbum={handleOpenAlbum}
           />
         ))}
       </div>
 
+      {/* Footer */}
       <footer style={styles.footer}>
         <input
           type="text"
@@ -233,9 +294,32 @@ export default function ChatPage() {
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
         />
-        <button style={styles.sendButton} onClick={handleSend}>
-          Send
-        </button>
+
+        {/* 
+          If user has typed something, show "Send" button 
+          Otherwise, show mic for voice recording
+        */}
+        {newMessage.trim().length > 0 ? (
+            <button style={styles.sendButton} onClick={handleSendText}>
+             ➤
+            </button>
+        ) : (
+          <div
+            style={{
+              ...styles.recordIconContainer,
+              backgroundColor: isRecording ? 'red' : '#25D366',
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+            }}
+            onPointerDown={handleStartRecording}
+            onPointerUp={handleStopRecording}
+          >
+            <div style={styles.recordIcon}>
+              {isRecording ? 'Rec' : '🎤'}
+            </div>
+          </div>
+        )}
       </footer>
 
       {/* Album Modal */}
@@ -250,7 +334,7 @@ export default function ChatPage() {
   )
 }
 
-// Bubble Component
+// ------------------ Bubble Component ------------------
 function MessageBubble({
   message,
   onOpenAlbum,
@@ -266,22 +350,23 @@ function MessageBubble({
       return <div style={bubbleStyle}>{message.content}</div>
 
     case 'voice':
+      // content is an audio URL
       return (
         <div style={bubbleStyle}>
-          <span>🎤 Voice Message:</span> {message.content}
+          🎤 Voice Message:
+          <audio controls src={message.content as string} style={{ display: 'block', marginTop: 5 }} />
         </div>
       )
 
     case 'imageAlbum':
       if (Array.isArray(message.content)) {
-        // e.g. [{ url, full }, ...]
         return (
           <div style={bubbleStyle}>
             <AlbumBubble
-              images={(message.content as Array<{ url: string; full: string }>).map(item => item.url)}
-              onOpenAlbum={() =>
-                onOpenAlbum(message.content as Array<{ url: string; full: string }>)
-              }
+              images={(message.content as Array<{ url: string; full: string }>).map(
+                (item) => item.url
+              )}
+              onOpenAlbum={() => onOpenAlbum(message.content as Array<{ url: string; full: string }>)}
             />
           </div>
         )
@@ -292,6 +377,7 @@ function MessageBubble({
       return null
   }
 }
+
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
@@ -377,5 +463,16 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '8px 14px',
     fontSize: '16px',
     borderRadius: '4px',
+  },
+  recordIconContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    // The background color changes to red if isRecording
+  },
+  recordIcon: {
+    color: '#fff',
+    fontSize: 14,
   },
 }
