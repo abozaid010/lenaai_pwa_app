@@ -330,24 +330,31 @@ export default function ChatPage() {
         durationText = `${minutes}:${String(seconds).padStart(2, '0')}`
       }
       
-      // 2) Create user voice message
-      const voiceMsg: Message = {
-        id: Helper.getNextId(),
-        type: 'voice',
-        content: audioUrl,
-        duration: durationText || '',
-        sender: 'user',
+      // 2) Convert blob to base64 for storage
+      const reader = new FileReader()
+      reader.readAsDataURL(audioBlob)
+      reader.onloadend = () => {
+        const base64Audio = reader.result as string
+        
+        // 3) Create user voice message with base64 data
+        const voiceMsg: Message = {
+          id: Helper.getNextId(),
+          type: 'voice',
+          content: base64Audio, // Store base64 instead of URL
+          duration: durationText || '',
+          sender: 'user',
+        }
+        setMessages((prev) => [...prev, voiceMsg])
       }
-      setMessages((prev) => [...prev, voiceMsg])
 
-      // 3) Prepare form data for API
+      // 4) Prepare form data for API
       const formData = new FormData()
       formData.append('phone_number', phoneNumber)
       formData.append('client_id', clientId)
       formData.append('platform', 'website')
       formData.append('file', audioBlob, 'voice.mp4') // Changed extension to .mp4 for iOS
 
-      // 4) Send to API
+      // 5) Send to API
       const response = await fetch('https://api.lenaai.net/voice_process', {
         method: 'POST',
         body: formData
@@ -360,7 +367,7 @@ export default function ChatPage() {
       const data = await response.json()
       console.log('Voice process response:', data)
 
-      // 5) Build new server messages (same logic as handleSendText)
+      // 6) Build new server messages (same logic as handleSendText)
       const newMessages: Message[] = []
 
       // a) main text
@@ -400,12 +407,11 @@ export default function ChatPage() {
         })
       }
 
-      // 6) Append server messages
+      // 7) Append server messages
       setMessages((prev) => [...prev, ...newMessages])
 
     } catch (err) {
       console.error('Error in sendVoiceMessage:', err)
-      // Add error message to chat
       setMessages((prev) => [...prev, {
         id: Helper.getNextId(),
         type: 'text',

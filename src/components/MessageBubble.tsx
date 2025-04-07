@@ -28,14 +28,24 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
       position: 'relative'
     }}>
       <audio 
-        src={content} 
+        src={content}
         controls 
         style={{
           height: '40px',
           minWidth: '200px'
         }} 
       />
-      
+      {duration && (
+        <span style={{
+          fontSize: '12px',
+          color: '#666',
+          position: 'absolute',
+          right: '8px',
+          bottom: '-18px'
+        }}>
+          {duration}
+        </span>
+      )}
     </div>
   )
 
