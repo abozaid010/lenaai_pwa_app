@@ -217,23 +217,42 @@ export default function ChatPage() {
       // Set recording state immediately for UI feedback
       setIsRecording(true)
       
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100,
+          channelCount: 1
+        } 
+      })
+      
+      // Create MediaRecorder with specific MIME type for iOS
+      const mimeType = MediaRecorder.isTypeSupported('audio/mp4') 
+        ? 'audio/mp4' 
+        : 'audio/webm'
+      
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 128000
+      })
+      
       chunksRef.current = []
 
       mediaRecorder.onstart = () => {
         console.log('MediaRecorder onstart')
       }
+      
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
           console.log('Received audio data:', e.data.size, 'bytes')
           chunksRef.current.push(e.data)
         }
       }
+      
       mediaRecorder.onstop = async () => {
         console.log('MediaRecorder onstop, chunk count:', chunksRef.current.length)
         if (chunksRef.current.length > 0) {
-          const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+          const blob = new Blob(chunksRef.current, { type: mimeType })
           const url = URL.createObjectURL(blob)
           await sendVoiceMessage(url, blob)
           
@@ -241,6 +260,7 @@ export default function ChatPage() {
           stream.getTracks().forEach(track => track.stop())
         }
       }
+      
       mediaRecorder.onerror = (err) => {
         console.error('MediaRecorder error:', err)
         setIsRecording(false)
@@ -297,37 +317,37 @@ export default function ChatPage() {
 
   // Update the sendVoiceMessage function
   const sendVoiceMessage = async (audioUrl: string, audioBlob: Blob) => {
-    console.log('sendVoiceMessage with audio:', audioUrl)
-    
-    // 1) Get audio duration
-    const duration = await getAudioDuration(audioBlob)
-    let durationText = '0:00'
-    
-    if (duration > 0 && !isNaN(duration)) {
-      const minutes = Math.floor(duration / 60)
-      const seconds = Math.floor(duration % 60)
-      durationText = `${minutes}:${String(seconds).padStart(2, '0')}`
-    }
-    
-    // 2) Create user voice message
-    const voiceMsg: Message = {
-      id: Helper.getNextId(),
-      type: 'voice',
-      content: audioUrl,
-      duration: durationText,
-      sender: 'user',
-    }
-    setMessages((prev) => [...prev, voiceMsg])
-
-    // 3) Prepare form data for API
-    const formData = new FormData()
-    formData.append('phone_number', phoneNumber)
-    formData.append('client_id', clientId)
-    formData.append('platform', 'website')
-    formData.append('file', audioBlob, 'voice.webm')
-
-    // 4) Send to API
     try {
+      console.log('sendVoiceMessage with audio:', audioUrl)
+      
+      // 1) Get audio duration
+      const duration = await getAudioDuration(audioBlob)
+      let durationText = ''
+      
+      if (duration > 0 && !isNaN(duration)) {
+        const minutes = Math.floor(duration / 60)
+        const seconds = Math.floor(duration % 60)
+        durationText = `${minutes}:${String(seconds).padStart(2, '0')}`
+      }
+      
+      // 2) Create user voice message
+      const voiceMsg: Message = {
+        id: Helper.getNextId(),
+        type: 'voice',
+        content: audioUrl,
+        duration: durationText || '',
+        sender: 'user',
+      }
+      setMessages((prev) => [...prev, voiceMsg])
+
+      // 3) Prepare form data for API
+      const formData = new FormData()
+      formData.append('phone_number', phoneNumber)
+      formData.append('client_id', clientId)
+      formData.append('platform', 'website')
+      formData.append('file', audioBlob, 'voice.mp4') // Changed extension to .mp4 for iOS
+
+      // 4) Send to API
       const response = await fetch('https://api.lenaai.net/voice_process', {
         method: 'POST',
         body: formData
@@ -384,13 +404,14 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, ...newMessages])
 
     } catch (err) {
-      console.error('Error sending voice to API:', err)
-      // Optionally add error message to chat
+      console.error('Error in sendVoiceMessage:', err)
+      // Add error message to chat
       setMessages((prev) => [...prev, {
         id: Helper.getNextId(),
         type: 'text',
         content: 'Failed to process voice message. Please try again.',
         sender: 'server',
+        duration: ''
       }])
     }
   }
