@@ -1,8 +1,0 @@
-
-type Message = {
-  id: number
-  type: 'text' | 'voice' | 'imageAlbum'
-  content: string | string[] | Array<{ url: string; full: string }>
-  sender: 'user' | 'server'
-}
-export default Message;
