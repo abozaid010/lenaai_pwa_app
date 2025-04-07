@@ -1,4 +1,3 @@
-
 // ------------------ Styles ------------------
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
@@ -13,17 +12,24 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '10px',
-    backgroundColor: 'var(--header-bg)',
-    borderBottom: '1px solid var(--border-color)',
+    padding: '15px',
+    backgroundColor: '#6F49FF',
+    color: '#FFFFFF',
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+    fontWeight: '500',
   },
   callButton: {
     cursor: 'pointer',
     border: 'none',
-    backgroundColor: '#25D366',
-    color: '#fff',
-    padding: '5px 10px',
+    backgroundColor: '#6F49FF',
+    color: '#FFFFFF',
+    padding: '8px 12px',
     borderRadius: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '20px',
+    filter: 'brightness(0) invert(1)', // Make emoji white
   },
   clearButton: {
     margin: '5px 10px',
@@ -44,22 +50,23 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   userBubble: {
     alignSelf: 'flex-end',
-    backgroundColor: 'var(--user-bubble-bg)',
-    color: 'var(--user-bubble-text)',
+    backgroundColor: '#0A8996',
+    color: '#FFFFFF',
     padding: '10px',
     borderRadius: '8px',
     maxWidth: '60%',
     whiteSpace: 'pre-wrap',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
   },
   serverBubble: {
     alignSelf: 'flex-start',
-    backgroundColor: 'var(--server-bubble-bg)',
-    color: 'var(--server-bubble-text)',
-    border: '1px solid var(--border-color)',
+    backgroundColor: '#0A8996',
+    color: '#FFFFFF',
     padding: '10px',
     borderRadius: '8px',
     maxWidth: '60%',
     whiteSpace: 'pre-wrap',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
   },
   footer: {
     display: 'flex',
@@ -79,17 +86,16 @@ const styles: { [key: string]: React.CSSProperties } = {
   sendButton: {
     cursor: 'pointer',
     border: 'none',
-    backgroundColor: '#25D366',
-    color: '#fff',
+    backgroundColor: '#6F49FF',
+    color: '#FFFFFF',
     width: '40px',
     height: '40px',
-    fontSize: '16px',
+    fontSize: '18px',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
   recordIconContainer: {
     width: 40,
     height: 40,
@@ -98,10 +104,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
+    backgroundColor: '#6F49FF',
+    color: '#FFFFFF',
   },
   recordIcon: {
-    color: '#fff',
-    fontSize: 14,
+    color: '#FFFFFF',
+    fontSize: '20px',
   },
 }
 
