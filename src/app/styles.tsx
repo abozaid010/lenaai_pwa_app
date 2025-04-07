@@ -30,6 +30,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: 'center',
     fontSize: '20px',
     filter: 'brightness(0) invert(1)', // Make emoji white
+    userSelect: 'none', // Prevent text selection
+    WebkitUserSelect: 'none', // For Safari
+    MozUserSelect: 'none', // For Firefox
   },
   clearButton: {
     margin: '5px 10px',
@@ -108,6 +111,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: 'pointer',
     backgroundColor: '#6F49FF',
     color: '#FFFFFF',
+    userSelect: 'none', // Prevent text selection
+    WebkitUserSelect: 'none', // For Safari
+    MozUserSelect: 'none', // For Firefox
   },
   recordIcon: {
     color: '#FFFFFF',

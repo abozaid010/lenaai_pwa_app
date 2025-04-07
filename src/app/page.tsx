@@ -410,8 +410,8 @@ export default function ChatPage() {
       }}>
         <div>LenaAI Chat</div>
         <button
-          
           onClick={() => (window.location.href = 'tel:+201016080323')}
+          onTouchStart={(e) => e.preventDefault()}
         >
           &#128222;
         </button>
@@ -465,15 +465,16 @@ export default function ChatPage() {
             }}
             onPointerDown={handleStartRecording}
             onPointerUp={handleStopRecording}
-            onTouchStart={handleStartRecording}
-            onTouchEnd={handleStopRecording}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              handleStartRecording();
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              handleStopRecording();
+            }}
           >
-            <div style={{
-              ...styles.recordIcon,
-              color: '#FFFFFF',
-              fontSize: isRecording ? '24px' : '20px',
-              transition: 'font-size 0.3s ease-in-out'
-            }}>
+            <div style={styles.recordIcon}>
               {isRecording ? 'REC' : '🎤'}
             </div>
           </div>
