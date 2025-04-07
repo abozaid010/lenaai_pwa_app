@@ -425,6 +425,108 @@ export default function ChatPage() {
   // ==============================
   //   RENDER
   // ==============================
+  useEffect(() => {
+    const unitId = localStorage.getItem('unitId')
+    if (unitId) {
+      const fetchUnitDetails = async () => {
+        try {
+          console.log('Fetching unit details for:', unitId)
+          
+          const response = await fetch(`https://api.lenaai.net/units_details/${unitId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              // Add any required headers
+            },
+            // Add credentials if needed
+            // credentials: 'include',
+          })
+          
+          console.log('Response status:', response.status)
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+          
+          const data = await response.json()
+          console.log('Unit details received:', data)
+          
+          // Create messages from unit details
+          const newMessages: Message[] = []
+
+          // Add unit title as text message
+          newMessages.push({
+            id: Helper.getNextId(),
+            type: 'text',
+            content: data.unitTitle || 'Unit Details',
+            sender: 'server',
+            duration: ''
+          })
+
+          // Add unit details as text message
+          const unitDetails = `
+Client: ${data.clientName || 'N/A'}
+Location: ${data.city || 'N/A'}, ${data.compound || 'N/A'}
+Type: ${data.buildingType || 'N/A'}
+Rooms: ${data.roomsCount || 'N/A'}
+Bathrooms: ${data.bathroomCount || 'N/A'}
+Floor: ${data.floor || 'N/A'}
+Finishing: ${data.finishing || 'N/A'}
+Price: ${data.totalPrice ? data.totalPrice.toLocaleString() : 'N/A'} EGP
+Delivery: ${data.deliveryDate || 'N/A'}
+          `.trim()
+
+          newMessages.push({
+            id: Helper.getNextId(),
+            type: 'text',
+            content: unitDetails,
+            sender: 'server',
+            duration: ''
+          })
+
+          // Add images as album if they exist
+          if (data.images && data.images.length > 0) {
+            const albumItems = data.images.map((img: { thumbnailUrl: string; url: string }) => ({
+              url: img.thumbnailUrl,
+              full: img.url
+            }))
+            
+            newMessages.push({
+              id: Helper.getNextId(),
+              type: 'imageAlbum',
+              content: albumItems,
+              sender: 'server',
+              duration: ''
+            })
+          }
+
+          // Add messages to chat
+          setMessages(prev => [...prev, ...newMessages])
+
+          // Clear unitId from localStorage after processing
+          localStorage.removeItem('unitId')
+          
+        } catch (error) {
+          console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            unitId
+          })
+          
+          // Add error message to chat
+          setMessages(prev => [...prev, {
+            id: Helper.getNextId(),
+            type: 'text',
+            content: `Failed to load unit details (${error.message}). Please try again.`,
+            sender: 'server',
+            duration: ''
+          }])
+        }
+      }
+      fetchUnitDetails()
+    }
+  }, [])
+
   return (
     <div style={styles.container}>
      
