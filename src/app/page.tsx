@@ -9,37 +9,10 @@ import AlbumBubble from '../components/AlbumBubble'
 import AlbumModal from '../components/AlbumModal'
 import MessageBubble from '../components/MessageBubble'
 import { Message } from '@/types/Message'
+import { ApiService } from '../services/ApiService'
 
 // Add this function near the top of the file, after the imports
-const sendToLanggraphChat = async (query: string, unitId?: string) => {
-  const payload = {
-    phone_number: localStorage.getItem('phone_number') || '',
-    query: query,
-    client_id: 'ALL', // Using the hardcoded clientId value
-    platform: 'website',
-    ...(unitId && { unit_id: unitId }) // Only add unit_id if it exists
-  }
-
-  try {
-    const response = await fetch('https://api.lenaai.net/langgraph_chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-
-    if (!response.ok) {
-      console.error('Server returned error:', response.status)
-      return null
-    }
-
-    const data = await response.json()
-    console.log('Server data:', data)
-    return data
-  } catch (err) {
-    console.error('Error calling API:', err)
-    return null
-  }
-}
+const apiService = ApiService.getInstance()
 
 // ---------- MAIN CHAT PAGE COMPONENT ----------
 export default function ChatPage() {
@@ -167,7 +140,7 @@ export default function ChatPage() {
 
     // 3) Call the backend using the helper function
     if (typeof userMsg.content === 'string') {
-      const data = await sendToLanggraphChat(userMsg.content)
+      const data = await apiService.sendToLanggraphChat(userMsg.content)
 
       if (data) {
         // 4) Build new server messages
@@ -502,7 +475,7 @@ export default function ChatPage() {
           setMessages(prev => [...prev, ...newMessages])
 
           // After unit details are processed, send the like message
-          const likeResponse = await sendToLanggraphChat(`I like this Property`, unitId)
+          const likeResponse = await apiService.sendToLanggraphChat(`I like this Property`, unitId)
 
           if (likeResponse) {
             const likeMessages: Message[] = []
