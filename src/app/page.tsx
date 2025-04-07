@@ -10,6 +10,37 @@ import AlbumModal from '../components/AlbumModal'
 import MessageBubble from '../components/MessageBubble'
 import { Message } from '@/types/Message'
 
+// Add this function near the top of the file, after the imports
+const sendToLanggraphChat = async (query: string, unitId?: string) => {
+  const payload = {
+    phone_number: localStorage.getItem('phone_number') || '',
+    query: query,
+    client_id: 'ALL', // Using the hardcoded clientId value
+    platform: 'website',
+    ...(unitId && { unit_id: unitId }) // Only add unit_id if it exists
+  }
+
+  try {
+    const response = await fetch('https://api.lenaai.net/langgraph_chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      console.error('Server returned error:', response.status)
+      return null
+    }
+
+    const data = await response.json()
+    console.log('Server data:', data)
+    return data
+  } catch (err) {
+    console.error('Error calling API:', err)
+    return null
+  }
+}
+
 // ---------- MAIN CHAT PAGE COMPONENT ----------
 export default function ChatPage() {
   // -------- Chat State --------
@@ -134,30 +165,11 @@ export default function ChatPage() {
     // 2) Clear the input
     setNewMessage('')
 
-    // 3) Prepare payload
-    const payload = {
-      phone_number: phoneNumber,
-      query: userMsg.content,
-      client_id: clientId,
-      platform: 'website',
-    }
+    // 3) Call the backend using the helper function
+    const data = await sendToLanggraphChat(userMsg.content)
 
-    // 4) Call the backend
-    try {
-      const response = await fetch('https://api.lenaai.net/langgraph_chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      if (!response.ok) {
-        console.error('Server returned error:', response.status)
-      }
-
-      const data = await response.json()
-      console.log('Server data:', data)
-
-      // 5) Build new server messages
+    if (data) {
+      // 4) Build new server messages
       const newMessages: Message[] = []
 
       // a) main text
@@ -197,10 +209,8 @@ export default function ChatPage() {
         })
       }
 
-      // 6) Append server messages
+      // 5) Append server messages
       setMessages((prev) => [...prev, ...newMessages])
-    } catch (err) {
-      console.error('Error calling API:', err)
     }
   }
 
@@ -428,6 +438,7 @@ export default function ChatPage() {
   useEffect(() => {
     const unitId = localStorage.getItem('unitId')
     if (unitId) {
+      
       const fetchUnitDetails = async () => {
         try {
           console.log('Fetching unit details for:', unitId)
@@ -436,13 +447,8 @@ export default function ChatPage() {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
-              // Add any required headers
             },
-            // Add credentials if needed
-            // credentials: 'include',
           })
-          
-          console.log('Response status:', response.status)
           
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
@@ -465,7 +471,6 @@ export default function ChatPage() {
 
           // Add unit details as text message
           const unitDetails = `
-Client: ${data.clientName || 'N/A'}
 Location: ${data.city || 'N/A'}, ${data.compound || 'N/A'}
 Type: ${data.buildingType || 'N/A'}
 Rooms: ${data.roomsCount || 'N/A'}
@@ -473,7 +478,6 @@ Bathrooms: ${data.bathroomCount || 'N/A'}
 Floor: ${data.floor || 'N/A'}
 Finishing: ${data.finishing || 'N/A'}
 Price: ${data.totalPrice ? data.totalPrice.toLocaleString() : 'N/A'} EGP
-Delivery: ${data.deliveryDate || 'N/A'}
           `.trim()
 
           newMessages.push({
@@ -503,21 +507,23 @@ Delivery: ${data.deliveryDate || 'N/A'}
           // Add messages to chat
           setMessages(prev => [...prev, ...newMessages])
 
-          // Clear unitId from localStorage after processing
+          // After unit details are processed, send the like message
+          await sendToLanggraphChat(`I like this Property`, unitId)
+
+          // Clear unitId from localStorage after all processing
           localStorage.removeItem('unitId')
           
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error details:', {
-            message: error.message,
-            stack: error.stack,
+            message: error?.message,
+            stack: error?.stack,
             unitId
           })
           
-          // Add error message to chat
           setMessages(prev => [...prev, {
             id: Helper.getNextId(),
             type: 'text',
-            content: `Failed to load unit details (${error.message}). Please try again.`,
+            content: `Failed to load unit details. Please try again.`,
             sender: 'server',
             duration: ''
           }])
