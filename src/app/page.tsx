@@ -403,6 +403,8 @@ export default function ChatPage() {
   // ==============================
   return (
     <div style={styles.container}>
+     
+
       {/* Header */}
       <header style={{
         ...styles.header,
@@ -411,14 +413,25 @@ export default function ChatPage() {
       }}>
         <div>LenaAI Chat</div>
         <button
-         
+          style={{
+            ...styles.callButton,
+            backgroundColor: '#FFFFFF',
+            color: '#000000',
+            fontSize: '20px',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: '8px 12px',
+          }}
           onClick={() => (window.location.href = 'tel:+201016080323')}
         >
           &#128222;
         </button>
       </header>
-
-
+ {/* Development Mode Header View */}
+ {process.env.NODE_ENV === 'development' && headerView()}
       {/* Chat Area */}
       <div style={styles.chatArea}>
         {messages.map((msg) => (
