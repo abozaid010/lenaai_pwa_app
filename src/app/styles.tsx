@@ -7,6 +7,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     height: '100vh',
     maxWidth: '600px',
     margin: '0 auto',
+    paddingBottom: 'env(safe-area-inset-bottom)',
+    paddingTop: 'env(safe-area-inset-top)',
   },
   header: {
     display: 'flex',
@@ -50,6 +52,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: 'column',
     gap: '10px',
     backgroundColor: '#fafafa',
+    paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
   },
   userBubble: {
     alignSelf: 'flex-end',
@@ -79,6 +82,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderTop: '1px solid #ccc',
     padding: '10px',
     background: '#f5f5f5',
+    paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
+    position: 'sticky',
+    bottom: 0,
+    zIndex: 100,
   },
   input: {
     flex: 1,
