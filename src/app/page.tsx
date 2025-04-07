@@ -404,13 +404,29 @@ export default function ChatPage() {
   return (
     <div style={styles.container}>
       {/* Header */}
-      <header style={styles.header}>
+      <header style={{
+        ...styles.header,
+        backgroundColor: '#6F49FF',
+        color: '#FFFFFF',
+      }}>
         <div>LenaAI Chat</div>
         <button
-          style={styles.callButton}
+          style={{
+            ...styles.callButton,
+            backgroundColor: '#6F49FF',
+            color: '#FFFF',
+            fontSize: '20px',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: '8px 12px',
+            filter: 'brightness(0) invert(1)', // This will make the emoji white
+          }}
           onClick={() => (window.location.href = 'tel:+201016080323')}
         >
-          📞
+          &#128222;
         </button>
       </header>
 
@@ -437,16 +453,20 @@ export default function ChatPage() {
         />
 
         {newMessage.trim().length > 0 ? (
-          // If user typed something, show "Send"
-          <button style={styles.sendButton} onClick={handleSendText}>
+          // Send button
+          <button style={{
+            ...styles.sendButton,
+            backgroundColor: '#6F49FF',
+            color: '#FFFFFF',
+          }} onClick={handleSendText}>
             ➤
           </button>
         ) : (
-          // If no text, show the record icon
+          // Record button
           <div
             style={{
               ...styles.recordIconContainer,
-              backgroundColor: isRecording ? 'red' : '#25D366',
+              backgroundColor: isRecording ? 'red' : '#6F49FF',
               width: isRecording ? '100px' : '40px',
               height: isRecording ? '100px' : '40px',
               transition: 'all 0.3s ease-in-out',
@@ -463,6 +483,7 @@ export default function ChatPage() {
           >
             <div style={{
               ...styles.recordIcon,
+              color: '#FFFFFF',
               fontSize: isRecording ? '24px' : '20px',
               transition: 'font-size 0.3s ease-in-out'
             }}>

@@ -16,6 +16,21 @@ interface MessageBubbleProps {
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) => {
+  const styles = {
+    bubble: {
+      alignSelf: message.sender === 'user' ? 'flex-end' : 'flex-start',
+      backgroundColor: '#0A8996',
+      color: '#FFFFFF',
+      padding: '10px',
+      borderRadius: '8px',
+      maxWidth: '60%',
+      whiteSpace: 'pre-wrap',
+      marginBottom: '8px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    },
+    // ... other styles ...
+  }
+
   const bubbleStyle =
     message.sender === 'user' ? styles.userBubble : styles.serverBubble
 
@@ -50,11 +65,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
 
   switch (message.type) {
     case 'text':
-      return <div style={bubbleStyle}>{message.content as string}</div>
+      return <div style={styles.bubble}>{message.content as string}</div>
 
     case 'voice':
       return (
-        <div style={bubbleStyle}>
+        <div style={styles.bubble}>
           {renderVoiceMessage(message.content as string, message.duration)}
         </div>
       )
@@ -62,7 +77,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
     case 'imageAlbum':
       if (Array.isArray(message.content)) {
         return (
-          <div style={bubbleStyle}>
+          <div style={styles.bubble}>
             <AlbumBubble
               images={(message.content as Array<{ url: string; full: string }>).map(
                 (x) => x.url
