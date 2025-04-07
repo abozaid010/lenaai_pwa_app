@@ -4,15 +4,19 @@ import React, { useEffect, useState, useRef } from 'react'
 // Import your global styles or variables
 import './globals.css'
 import styles from './styles'
-
-// Import external helpers & types
 import Helper from '../utils/Helper'
-import Message from '../types/Message'
-
-// Import external components
 import AlbumBubble from '../components/AlbumBubble'
 import AlbumModal from '../components/AlbumModal'
 import MessageBubble from '../components/MessageBubble'
+
+interface Message {
+  id: number
+  type: 'text' | 'voice' | 'imageAlbum'
+  content: string | { url: string; full: string }[]
+  sender: 'user' | 'server'
+  duration?: string
+} 
+
 // ---------- MAIN CHAT PAGE COMPONENT ----------
 export default function ChatPage() {
   // -------- Chat State --------
@@ -413,18 +417,7 @@ export default function ChatPage() {
       }}>
         <div>LenaAI Chat</div>
         <button
-          style={{
-            ...styles.callButton,
-            backgroundColor: '#FFFFFF',
-            color: '#000000',
-            fontSize: '20px',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            padding: '8px 12px',
-          }}
+          
           onClick={() => (window.location.href = 'tel:+201016080323')}
         >
           &#128222;
