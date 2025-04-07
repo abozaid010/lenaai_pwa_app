@@ -20,7 +20,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
   const bubbleStyle =
     message.sender === 'user' ? styles.userBubble : styles.serverBubble
 
-  const renderVoiceMessage = (content: string, duration?: string) => (
+  const renderVoiceMessage = (content: string, duration: string) => (
     <div style={{
       display: 'flex',
       alignItems: 'center',
@@ -35,7 +35,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
           minWidth: '200px'
         }} 
       />
-      {duration && (
+      {duration  && (
         <span style={{
           fontSize: '12px',
           color: '#666',
@@ -43,7 +43,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
           right: '8px',
           bottom: '-18px'
         }}>
-           {message.duration || '00:59'}
+           {duration }
         </span>
       )}
     </div>
@@ -56,7 +56,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
     case 'voice':
       return (
         <div style={styles.bubble}>
-          {renderVoiceMessage(message.content as string, message.duration)}
+          {renderVoiceMessage(message.content as string, message.duration || '00:59')}
         </div>
       )
 
