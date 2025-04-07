@@ -217,6 +217,9 @@ export default function ChatPage() {
       return
     }
     try {
+      // Set recording state immediately for UI feedback
+      setIsRecording(true)
+      
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mediaRecorder = new MediaRecorder(stream)
       chunksRef.current = []
@@ -232,38 +235,35 @@ export default function ChatPage() {
       }
       mediaRecorder.onstop = () => {
         console.log('MediaRecorder onstop, chunk count:', chunksRef.current.length)
-        // If chunk count is 0, typically means no data was captured
-        if (chunksRef.current.length > 0) {
-          const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-          const url = URL.createObjectURL(blob)
-          sendVoiceMessage(url)
-        } else {
-          console.warn('No audio data captured. Possibly pressed mic too briefly or Safari lacks support.')
-        }
+        // Process the recording regardless of duration
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        const url = URL.createObjectURL(blob)
+        sendVoiceMessage(url)
+        
+        // Clean up the stream tracks
+        stream.getTracks().forEach(track => track.stop())
       }
       mediaRecorder.onerror = (err) => {
         console.error('MediaRecorder error:', err)
+        setIsRecording(false)
       }
 
+      // Start recording immediately
       mediaRecorder.start()
       setRecorder(mediaRecorder)
-      setIsRecording(true)
-      console.log('Recording started (hold at least 1s).')
     } catch (err) {
       console.error('Error accessing microphone:', err)
+      setIsRecording(false)
     }
   }
 
   const handleStopRecording = () => {
     console.log('handleStopRecording invoked')
+    setIsRecording(false)
     if (recorder) {
-      // give it a short delay to ensure data is captured
-      setTimeout(() => {
-        recorder.stop()
-        setRecorder(null)
-        setIsRecording(false)
-        console.log('Stopped recording (after short delay).')
-      }, 100)
+      recorder.stop()
+      setRecorder(null)
+      console.log('Stopped recording.')
     } else {
       console.log('No recorder to stop.')
     }
@@ -276,13 +276,10 @@ export default function ChatPage() {
     const voiceMsg: Message = {
       id: Helper.getNextId(),
       type: 'voice',
-      content: audioUrl, // we store the blob URL
+      content: audioUrl,
       sender: 'user',
     }
     setMessages((prev) => [...prev, voiceMsg])
-
-    // 2) Optionally send to server if needed
-    // e.g., to handle voice server-side, do a fetch here
   }
 
   // ==============================
@@ -334,13 +331,25 @@ export default function ChatPage() {
             style={{
               ...styles.recordIconContainer,
               backgroundColor: isRecording ? 'red' : '#25D366',
+              width: isRecording ? '100px' : '40px',
+              height: isRecording ? '100px' : '40px',
+              transition: 'all 0.3s ease-in-out',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              cursor: 'pointer'
             }}
             onPointerDown={handleStartRecording}
             onPointerUp={handleStopRecording}
             onTouchStart={handleStartRecording}
             onTouchEnd={handleStopRecording}
           >
-            <div style={styles.recordIcon}>
+            <div style={{
+              ...styles.recordIcon,
+              fontSize: isRecording ? '24px' : '20px',
+              transition: 'font-size 0.3s ease-in-out'
+            }}>
               {isRecording ? 'REC' : '🎤'}
             </div>
           </div>
