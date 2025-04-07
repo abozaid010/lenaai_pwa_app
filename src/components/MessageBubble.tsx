@@ -10,15 +10,43 @@ import AlbumModal from './AlbumModal'
 import type { Message } from '../types/Message'
 
 // =============== MessageBubble Component ===============
-export default function MessageBubble({
-  message,
-  onOpenAlbum,
-}: {
+interface MessageBubbleProps {
   message: Message
-  onOpenAlbum: (imgs: Array<{ url: string; full: string }>) => void
-}) {
+  onOpenAlbum?: (images: Array<{ url: string; full: string }>) => void
+}
+
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) => {
   const bubbleStyle =
     message.sender === 'user' ? styles.userBubble : styles.serverBubble
+
+  const renderVoiceMessage = (content: string, duration?: string) => (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      position: 'relative'
+    }}>
+      <audio 
+        src={content} 
+        controls 
+        style={{
+          height: '40px',
+          minWidth: '200px'
+        }} 
+      />
+      {duration && (
+        <span style={{
+          fontSize: '12px',
+          color: '#666',
+          position: 'absolute',
+          right: '8px',
+          bottom: '-18px'
+        }}>
+          {duration}
+        </span>
+      )}
+    </div>
+  )
 
   switch (message.type) {
     case 'text':
@@ -51,11 +79,4 @@ export default function MessageBubble({
   }
 }
 
-const renderVoiceMessage = (content: string, duration?: string) => (
-  <div style={styles.voiceContainer}>
-    <audio src={content} controls style={styles.audioPlayer} />
-    {duration && <span style={styles.duration}>{duration}</span>}
-  </div>
-)
-
-// export default MessageBubble
+export default MessageBubble

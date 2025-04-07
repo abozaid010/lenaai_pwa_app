@@ -270,13 +270,31 @@ export default function ChatPage() {
     }
   }
 
-  // Add this helper function at the top level
+  // Update the getAudioDuration function
   const getAudioDuration = async (blob: Blob): Promise<number> => {
     return new Promise((resolve) => {
-      const audio = new Audio(URL.createObjectURL(blob))
-      audio.onloadedmetadata = () => {
-        resolve(audio.duration)
-      }
+      const audio = new Audio()
+      const url = URL.createObjectURL(blob)
+      
+      const timeoutId = setTimeout(() => {
+        URL.revokeObjectURL(url)
+        resolve(0) // Resolve with 0 if loading takes too long
+      }, 3000) // 3 second timeout
+      
+      audio.addEventListener('loadedmetadata', () => {
+        clearTimeout(timeoutId)
+        const duration = isNaN(audio.duration) ? 0 : audio.duration
+        URL.revokeObjectURL(url)
+        resolve(Math.round(duration))
+      })
+      
+      audio.addEventListener('error', () => {
+        clearTimeout(timeoutId)
+        URL.revokeObjectURL(url)
+        resolve(0)
+      })
+      
+      audio.src = url
     })
   }
 
@@ -286,7 +304,13 @@ export default function ChatPage() {
     
     // 1) Get audio duration
     const duration = await getAudioDuration(audioBlob)
-    const durationText = `${Math.floor(duration)}s`
+    let durationText = '0:00'
+    
+    if (duration > 0 && !isNaN(duration)) {
+      const minutes = Math.floor(duration / 60)
+      const seconds = Math.floor(duration % 60)
+      durationText = `${minutes}:${String(seconds).padStart(2, '0')}`
+    }
     
     // 2) Create user voice message
     const voiceMsg: Message = {

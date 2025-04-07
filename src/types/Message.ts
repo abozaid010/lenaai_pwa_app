@@ -3,7 +3,7 @@ interface Message {
   type: 'text' | 'voice' | 'imageAlbum'
   content: string | { url: string; full: string }[]
   sender: 'user' | 'server'
-  duration?: string // Add this for voice messages
+  duration?: string
 }
 
 export default Message 
