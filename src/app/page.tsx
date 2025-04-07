@@ -413,8 +413,8 @@ export default function ChatPage() {
         <button
           style={{
             ...styles.callButton,
-            backgroundColor: '#6F49FF',
-            color: '#FFFF',
+            backgroundColor: '#FFFFFF',
+            color: '#000000',
             fontSize: '20px',
             border: 'none',
             display: 'flex',
@@ -422,7 +422,6 @@ export default function ChatPage() {
             justifyContent: 'center',
             cursor: 'pointer',
             padding: '8px 12px',
-            filter: 'brightness(0) invert(1)', // This will make the emoji white
           }}
           onClick={() => (window.location.href = 'tel:+201016080323')}
         >
