@@ -8,14 +8,7 @@ import Helper from '../utils/Helper'
 import AlbumBubble from '../components/AlbumBubble'
 import AlbumModal from '../components/AlbumModal'
 import MessageBubble from '../components/MessageBubble'
-
-interface Message {
-  id: number
-  type: 'text' | 'voice' | 'imageAlbum'
-  content: string | { url: string; full: string }[]
-  sender: 'user' | 'server'
-  duration?: string
-} 
+import { Message } from '@/types/Message'
 
 // ---------- MAIN CHAT PAGE COMPONENT ----------
 export default function ChatPage() {
