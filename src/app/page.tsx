@@ -233,15 +233,16 @@ export default function ChatPage() {
           chunksRef.current.push(e.data)
         }
       }
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         console.log('MediaRecorder onstop, chunk count:', chunksRef.current.length)
-        // Process the recording regardless of duration
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        const url = URL.createObjectURL(blob)
-        sendVoiceMessage(url)
-        
-        // Clean up the stream tracks
-        stream.getTracks().forEach(track => track.stop())
+        if (chunksRef.current.length > 0) {
+          const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+          const url = URL.createObjectURL(blob)
+          await sendVoiceMessage(url, blob)
+          
+          // Clean up the stream tracks
+          stream.getTracks().forEach(track => track.stop())
+        }
       }
       mediaRecorder.onerror = (err) => {
         console.error('MediaRecorder error:', err)
@@ -269,17 +270,108 @@ export default function ChatPage() {
     }
   }
 
-  // Called when we finalize an audio message
-  const sendVoiceMessage = (audioUrl: string) => {
+  // Add this helper function at the top level
+  const getAudioDuration = async (blob: Blob): Promise<number> => {
+    return new Promise((resolve) => {
+      const audio = new Audio(URL.createObjectURL(blob))
+      audio.onloadedmetadata = () => {
+        resolve(audio.duration)
+      }
+    })
+  }
+
+  // Update the sendVoiceMessage function
+  const sendVoiceMessage = async (audioUrl: string, audioBlob: Blob) => {
     console.log('sendVoiceMessage with audio:', audioUrl)
-    // 1) user voice message
+    
+    // 1) Get audio duration
+    const duration = await getAudioDuration(audioBlob)
+    const durationText = `${Math.floor(duration)}s`
+    
+    // 2) Create user voice message
     const voiceMsg: Message = {
       id: Helper.getNextId(),
       type: 'voice',
       content: audioUrl,
+      duration: durationText,
       sender: 'user',
     }
     setMessages((prev) => [...prev, voiceMsg])
+
+    // 3) Prepare form data for API
+    const formData = new FormData()
+    formData.append('phone_number', phoneNumber)
+    formData.append('client_id', clientId)
+    formData.append('platform', 'website')
+    formData.append('file', audioBlob, 'voice.webm')
+
+    // 4) Send to API
+    try {
+      const response = await fetch('https://api.lenaai.net/voice_process', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log('Voice process response:', data)
+
+      // 5) Build new server messages (same logic as handleSendText)
+      const newMessages: Message[] = []
+
+      // a) main text
+      newMessages.push({
+        id: Helper.getNextId(),
+        type: 'text',
+        content: data.message || '(No message received)',
+        sender: 'server',
+      })
+
+      // b) properties
+      if (Array.isArray(data.properties)) {
+        data.properties.forEach((prop: any) => {
+          const description = prop.description || ''
+          const images = prop.metadata?.images || []
+
+          if (description) {
+            newMessages.push({
+              id: Helper.getNextId(),
+              type: 'text',
+              content: description,
+              sender: 'server',
+            })
+          }
+          if (Array.isArray(images) && images.length > 0) {
+            const albumItems = images.map((imgObj: any) => ({
+              url: imgObj.url,
+              full: imgObj.url,
+            }))
+            newMessages.push({
+              id: Helper.getNextId(),
+              type: 'imageAlbum',
+              content: albumItems,
+              sender: 'server',
+            })
+          }
+        })
+      }
+
+      // 6) Append server messages
+      setMessages((prev) => [...prev, ...newMessages])
+
+    } catch (err) {
+      console.error('Error sending voice to API:', err)
+      // Optionally add error message to chat
+      setMessages((prev) => [...prev, {
+        id: Helper.getNextId(),
+        type: 'text',
+        content: 'Failed to process voice message. Please try again.',
+        sender: 'server',
+      }])
+    }
   }
 
   // ==============================

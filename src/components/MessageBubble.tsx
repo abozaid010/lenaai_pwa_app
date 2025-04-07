@@ -27,8 +27,7 @@ export default function MessageBubble({
     case 'voice':
       return (
         <div style={bubbleStyle}>
-          🎤 Voice Message:
-          <audio controls src={message.content as string} style={{ display: 'block', marginTop: 5 }} />
+          {renderVoiceMessage(message.content as string, message.duration)}
         </div>
       )
 
@@ -51,5 +50,12 @@ export default function MessageBubble({
       return null
   }
 }
+
+const renderVoiceMessage = (content: string, duration?: string) => (
+  <div style={styles.voiceContainer}>
+    <audio src={content} controls style={styles.audioPlayer} />
+    {duration && <span style={styles.duration}>{duration}</span>}
+  </div>
+)
 
 // export default MessageBubble
