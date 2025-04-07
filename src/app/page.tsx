@@ -411,18 +411,7 @@ export default function ChatPage() {
       }}>
         <div>LenaAI Chat</div>
         <button
-          style={{
-            ...styles.callButton,
-            backgroundColor: '#FFFFFF',
-            color: '#000000',
-            fontSize: '20px',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            padding: '8px 12px',
-          }}
+         
           onClick={() => (window.location.href = 'tel:+201016080323')}
         >
           &#128222;
