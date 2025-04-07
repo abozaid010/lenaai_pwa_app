@@ -166,51 +166,53 @@ export default function ChatPage() {
     setNewMessage('')
 
     // 3) Call the backend using the helper function
-    const data = await sendToLanggraphChat(userMsg.content)
+    if (typeof userMsg.content === 'string') {
+      const data = await sendToLanggraphChat(userMsg.content)
 
-    if (data) {
-      // 4) Build new server messages
-      const newMessages: Message[] = []
+      if (data) {
+        // 4) Build new server messages
+        const newMessages: Message[] = []
 
-      // a) main text
-      newMessages.push({
-        id: Helper.getNextId(),
-        type: 'text',
-        content: data.message || '(No message received)',
-        sender: 'server',
-      })
-
-      // b) properties
-      if (Array.isArray(data.properties)) {
-        data.properties.forEach((prop: any) => {
-          const description = prop.description || ''
-          const images = prop.metadata?.images || []
-
-          if (description) {
-            newMessages.push({
-              id: Helper.getNextId(),
-              type: 'text',
-              content: description,
-              sender: 'server',
-            })
-          }
-          if (Array.isArray(images) && images.length > 0) {
-            const albumItems = images.map((imgObj: any) => ({
-              url: imgObj.url,
-              full: imgObj.url,
-            }))
-            newMessages.push({
-              id: Helper.getNextId(),
-              type: 'imageAlbum',
-              content: albumItems,
-              sender: 'server',
-            })
-          }
+        // a) main text
+        newMessages.push({
+          id: Helper.getNextId(),
+          type: 'text',
+          content: data.message || '(No message received)',
+          sender: 'server',
         })
-      }
 
-      // 5) Append server messages
-      setMessages((prev) => [...prev, ...newMessages])
+        // b) properties
+        if (Array.isArray(data.properties)) {
+          data.properties.forEach((prop: any) => {
+            const description = prop.description || ''
+            const images = prop.metadata?.images || []
+
+            if (description) {
+              newMessages.push({
+                id: Helper.getNextId(),
+                type: 'text',
+                content: description,
+                sender: 'server',
+              })
+            }
+            if (Array.isArray(images) && images.length > 0) {
+              const albumItems = images.map((imgObj: any) => ({
+                url: imgObj.url,
+                full: imgObj.url,
+              }))
+              newMessages.push({
+                id: Helper.getNextId(),
+                type: 'imageAlbum',
+                content: albumItems,
+                sender: 'server',
+              })
+            }
+          })
+        }
+
+        // 5) Append server messages
+        setMessages((prev) => [...prev, ...newMessages])
+      }
     }
   }
 
@@ -464,21 +466,13 @@ export default function ChatPage() {
           newMessages.push({
             id: Helper.getNextId(),
             type: 'text',
-            content: data.unitTitle || 'Unit Details',
+            content: data.unitTitle || '',
             sender: 'server',
             duration: ''
           })
 
           // Add unit details as text message
-          const unitDetails = `
-Location: ${data.city || 'N/A'}, ${data.compound || 'N/A'}
-Type: ${data.buildingType || 'N/A'}
-Rooms: ${data.roomsCount || 'N/A'}
-Bathrooms: ${data.bathroomCount || 'N/A'}
-Floor: ${data.floor || 'N/A'}
-Finishing: ${data.finishing || 'N/A'}
-Price: ${data.totalPrice ? data.totalPrice.toLocaleString() : 'N/A'} EGP
-          `.trim()
+          const unitDetails = ` ${data.unitTitle || ''}`.trim()
 
           newMessages.push({
             id: Helper.getNextId(),
@@ -508,7 +502,54 @@ Price: ${data.totalPrice ? data.totalPrice.toLocaleString() : 'N/A'} EGP
           setMessages(prev => [...prev, ...newMessages])
 
           // After unit details are processed, send the like message
-          await sendToLanggraphChat(`I like this Property`, unitId)
+          const likeResponse = await sendToLanggraphChat(`I like this Property`, unitId)
+
+          if (likeResponse) {
+            const likeMessages: Message[] = []
+            
+            // Add main response message
+            likeMessages.push({
+              id: Helper.getNextId(),
+              type: 'text',
+              content: likeResponse.message || '(No message received)',
+              sender: 'server',
+              duration: ''
+            })
+
+            // Handle properties if they exist
+            if (Array.isArray(likeResponse.properties)) {
+              likeResponse.properties.forEach((prop: any) => {
+                const description = prop.description || ''
+                const images = prop.metadata?.images || []
+
+                if (description) {
+                  likeMessages.push({
+                    id: Helper.getNextId(),
+                    type: 'text',
+                    content: description,
+                    sender: 'server',
+                    duration: ''
+                  })
+                }
+                if (Array.isArray(images) && images.length > 0) {
+                  const albumItems = images.map((imgObj: any) => ({
+                    url: imgObj.url,
+                    full: imgObj.url
+                  }))
+                  likeMessages.push({
+                    id: Helper.getNextId(),
+                    type: 'imageAlbum',
+                    content: albumItems,
+                    sender: 'server',
+                    duration: ''
+                  })
+                }
+              })
+            }
+
+            // Add like response messages to chat
+            setMessages(prev => [...prev, ...likeMessages])
+          }
 
           // Clear unitId from localStorage after all processing
           localStorage.removeItem('unitId')
@@ -552,7 +593,7 @@ Price: ${data.totalPrice ? data.totalPrice.toLocaleString() : 'N/A'} EGP
         </button>
       </header>
  {/* Development Mode Header View */}
- {process.env.NODE_ENV === 'development' && headerView()}
+ {process.env.NODE_ENV !== 'production' && headerView()}
       {/* Chat Area */}
       <div style={styles.chatArea}>
         {messages.map((msg) => (
