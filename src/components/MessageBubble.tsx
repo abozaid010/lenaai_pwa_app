@@ -51,11 +51,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
 
   switch (message.type) {
     case 'text':
-      return <div style={styles.bubble}>{message.content as string}</div>
+      return <div style={bubbleStyle}>{message.content as string}</div>
 
     case 'voice':
       return (
-        <div style={styles.bubble}>
+        <div style={bubbleStyle}>
           {renderVoiceMessage(message.content as string, message.duration || '00:59')}
         </div>
       )
@@ -63,7 +63,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
     case 'imageAlbum':
       if (Array.isArray(message.content)) {
         return (
-          <div style={styles.bubble}>
+          <div style={bubbleStyle}>
             <AlbumBubble
               images={(message.content as Array<{ url: string; full: string }>).map(
                 (x) => x.url
