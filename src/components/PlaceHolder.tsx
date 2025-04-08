@@ -1,22 +1,25 @@
 import React from 'react'
 
-const PlaceHolder = ({ title }: { title: string }) => {
+interface PlaceHolderProps {
+    title: string;
+    style?: React.CSSProperties;
+}
+
+const PlaceHolder = ({ title, style }: PlaceHolderProps) => {
     return (
         <div style={{
-            width: '80%',
-            height: '30px',
-            backgroundColor: 'grey',
+            height: 'auto',
             borderRadius: '10px',
-            margin: '10px',
-            padding: '10px',
+            margin: '0',
+            padding: '0',
         }}>
             <p style={{
-                fontSize: '16px',
-                fontWeight: 'bold',
-                color: 'white',
+                fontSize: '14px',
+                fontWeight: '500',
                 textAlign: 'start',
                 margin: '0',
                 padding: '0',
+                ...style
             }}>
                 {title}
             </p>
