@@ -15,7 +15,7 @@ export class ApiService {
     const payload = {
       phone_number: localStorage.getItem('phone_number') || '',
       query: query,
-      client_id: 'ALL',
+      client_id: 'DREAM_HOMES',
       platform: 'website',
       ...(unitId && { unit_id: unitId })
     }

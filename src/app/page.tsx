@@ -14,6 +14,53 @@ import { ApiService } from '../services/ApiService'
 // Add this function near the top of the file, after the imports
 const apiService = ApiService.getInstance()
 
+// Add this function near the top of the file, after the imports
+const createMessagesFromResponse = (data: any): Message[] => {
+  const newMessages: Message[] = []
+
+  // Add main response message
+  newMessages.push({
+    id: Helper.getNextId(),
+    type: 'text',
+    content: data.message || '(No message received)',
+    sender: 'server',
+    duration: ''
+  })
+
+  // Handle properties if they exist
+  if (Array.isArray(data.properties)) {
+    data.properties.forEach((prop: any) => {
+      const description = prop.description || ''
+      const images = prop.metadata?.images || []
+
+      if (description) {
+        newMessages.push({
+          id: Helper.getNextId(),
+          type: 'text',
+          content: description,
+          sender: 'server',
+          duration: ''
+        })
+      }
+      if (Array.isArray(images) && images.length > 0) {
+        const albumItems = images.map((imgObj: any) => ({
+          url: imgObj.url,
+          full: imgObj.url
+        }))
+        newMessages.push({
+          id: Helper.getNextId(),
+          type: 'imageAlbum',
+          content: albumItems,
+          sender: 'server',
+          duration: ''
+        })
+      }
+    })
+  }
+
+  return newMessages
+}
+
 // ---------- MAIN CHAT PAGE COMPONENT ----------
 export default function ChatPage() {
   // -------- Chat State --------
@@ -30,7 +77,7 @@ export default function ChatPage() {
   const chunksRef = useRef<Blob[]>([]) // store audio data here
 
   // Hardcoded client info
-  const clientId = 'ALL'
+  const clientId = 'DREAM_HOMES'
   const STORAGE_KEY = phoneNumber ? `chat_${phoneNumber}` : 'myChatMessages'
 
   // ==============================
@@ -143,47 +190,7 @@ export default function ChatPage() {
       const data = await apiService.sendToLanggraphChat(userMsg.content)
 
       if (data) {
-        // 4) Build new server messages
-        const newMessages: Message[] = []
-
-        // a) main text
-        newMessages.push({
-          id: Helper.getNextId(),
-          type: 'text',
-          content: data.message || '(No message received)',
-          sender: 'server',
-        })
-
-        // b) properties
-        if (Array.isArray(data.properties)) {
-          data.properties.forEach((prop: any) => {
-            const description = prop.description || ''
-            const images = prop.metadata?.images || []
-
-            if (description) {
-              newMessages.push({
-                id: Helper.getNextId(),
-                type: 'text',
-                content: description,
-                sender: 'server',
-              })
-            }
-            if (Array.isArray(images) && images.length > 0) {
-              const albumItems = images.map((imgObj: any) => ({
-                url: imgObj.url,
-                full: imgObj.url,
-              }))
-              newMessages.push({
-                id: Helper.getNextId(),
-                type: 'imageAlbum',
-                content: albumItems,
-                sender: 'server',
-              })
-            }
-          })
-        }
-
-        // 5) Append server messages
+        const newMessages = createMessagesFromResponse(data)
         setMessages((prev) => [...prev, ...newMessages])
       }
     }
@@ -352,47 +359,7 @@ export default function ChatPage() {
       const data = await response.json()
       console.log('Voice process response:', data)
 
-      // 6) Build new server messages (same logic as handleSendText)
-      const newMessages: Message[] = []
-
-      // a) main text
-      newMessages.push({
-        id: Helper.getNextId(),
-        type: 'text',
-        content: data.message || '(No message received)',
-        sender: 'server',
-      })
-
-      // b) properties
-      if (Array.isArray(data.properties)) {
-        data.properties.forEach((prop: any) => {
-          const description = prop.description || ''
-          const images = prop.metadata?.images || []
-
-          if (description) {
-            newMessages.push({
-              id: Helper.getNextId(),
-              type: 'text',
-              content: description,
-              sender: 'server',
-            })
-          }
-          if (Array.isArray(images) && images.length > 0) {
-            const albumItems = images.map((imgObj: any) => ({
-              url: imgObj.url,
-              full: imgObj.url,
-            }))
-            newMessages.push({
-              id: Helper.getNextId(),
-              type: 'imageAlbum',
-              content: albumItems,
-              sender: 'server',
-            })
-          }
-        })
-      }
-
-      // 7) Append server messages
+      const newMessages = createMessagesFromResponse(data)
       setMessages((prev) => [...prev, ...newMessages])
 
     } catch (err) {
@@ -478,49 +445,7 @@ export default function ChatPage() {
           const likeResponse = await apiService.sendToLanggraphChat(`I like this Property`, unitId)
 
           if (likeResponse) {
-            const likeMessages: Message[] = []
-            
-            // Add main response message
-            likeMessages.push({
-              id: Helper.getNextId(),
-              type: 'text',
-              content: likeResponse.message || '(No message received)',
-              sender: 'server',
-              duration: ''
-            })
-
-            // Handle properties if they exist
-            if (Array.isArray(likeResponse.properties)) {
-              likeResponse.properties.forEach((prop: any) => {
-                const description = prop.description || ''
-                const images = prop.metadata?.images || []
-
-                if (description) {
-                  likeMessages.push({
-                    id: Helper.getNextId(),
-                    type: 'text',
-                    content: description,
-                    sender: 'server',
-                    duration: ''
-                  })
-                }
-                if (Array.isArray(images) && images.length > 0) {
-                  const albumItems = images.map((imgObj: any) => ({
-                    url: imgObj.url,
-                    full: imgObj.url
-                  }))
-                  likeMessages.push({
-                    id: Helper.getNextId(),
-                    type: 'imageAlbum',
-                    content: albumItems,
-                    sender: 'server',
-                    duration: ''
-                  })
-                }
-              })
-            }
-
-            // Add like response messages to chat
+            const likeMessages = createMessagesFromResponse(likeResponse)
             setMessages(prev => [...prev, ...likeMessages])
           }
 
