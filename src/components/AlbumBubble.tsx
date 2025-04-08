@@ -49,7 +49,7 @@ export default function AlbumBubble({
         }}
       >
         {visibleImages.map((url, i) => (
-          <div key={i} style={{ position: 'relative', height: '80px', width: '80px' }}>
+          <div key={i} style={{ position: 'relative', height: '100px' }}>
             <img
               src={url}
               alt={`Album thumbnail ${i + 1}`}
