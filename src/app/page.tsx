@@ -185,7 +185,7 @@ export default function ChatPage() {
     } finally {
       // Close the modal after API call completes (success or failure)
       setSelectedAlbum(null)
-      setSelectedPropertyId(undefined)
+      setSelectedPropertyId(null)
     }
   }
   const handleFindSomethingElse = () => {
@@ -608,7 +608,7 @@ export default function ChatPage() {
         onClose={handleCloseAlbum}
         onLike={handleLikeIt}
         onFindSomethingElse={handleFindSomethingElse}
-        propertyId={selectedPropertyId}
+        propertyId={selectedPropertyId || ''}
       />
     </div>
   )
