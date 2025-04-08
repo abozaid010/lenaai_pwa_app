@@ -27,13 +27,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
       gap: '8px',
       position: 'relative'
     }}>
-      <audio 
+      <audio
         src={content}
-        controls 
+        controls
         style={{
           height: '40px',
           minWidth: '200px'
-        }} 
+        }}
       />
     </div>
   )
@@ -53,13 +53,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
       if (Array.isArray(message.content)) {
         return (
           <div style={bubbleStyle}>
-            console.log('Rendering album with propertyId:', message.propertyId)
-            <AlbumBubble
-              images={(message.content as Array<{ url: string; full: string }>).map(
-                (x) => x.url
-              )}
-              onOpenAlbum={() => onOpenAlbum?.(message.content as Array<{ url: string; full: string }>, message.propertyId)}              
-            />
+            {
+
+              message.propertyId && (
+                <AlbumBubble
+                  images={(message.content as Array<{ url: string; full: string }>).map(
+                    (x) => x.url
+                  )}
+                  onOpenAlbum={() => onOpenAlbum?.(message.content as Array<{ url: string; full: string }>, message.propertyId)}
+                />
+              )
+            }
           </div>
         )
       }
