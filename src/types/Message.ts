@@ -4,4 +4,5 @@ export interface Message {
   content: string | { url: string; full: string }[]
   sender: 'user' | 'server'
   duration?: string
+  propertyId?: string
 }

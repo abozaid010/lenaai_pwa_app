@@ -12,7 +12,7 @@ import type { Message } from '../types/Message'
 // =============== MessageBubble Component ===============
 interface MessageBubbleProps {
   message: Message
-  onOpenAlbum?: (images: Array<{ url: string; full: string }>) => void
+  onOpenAlbum?: (images: Array<{ url: string; full: string }>, propertyId?: string) => void
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) => {
@@ -53,11 +53,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onOpenAlbum }) =
       if (Array.isArray(message.content)) {
         return (
           <div style={bubbleStyle}>
+            console.log('Rendering album with propertyId:', message.propertyId)
             <AlbumBubble
               images={(message.content as Array<{ url: string; full: string }>).map(
                 (x) => x.url
               )}
-              onOpenAlbum={() => onOpenAlbum?.(message.content as Array<{ url: string; full: string }>)}
+              onOpenAlbum={() => onOpenAlbum?.(message.content as Array<{ url: string; full: string }>, message.propertyId)}              
             />
           </div>
         )

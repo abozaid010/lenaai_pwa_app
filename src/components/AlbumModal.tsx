@@ -7,8 +7,9 @@ interface AlbumModalProps {
   images: string[]
   isOpen: boolean
   onClose: () => void
-  onLike: () => void
+  onLike: (propertyId?: string) => void
   onFindSomethingElse: () => void
+  propertyId?: string
 }
 
 export default function AlbumModal({
@@ -17,14 +18,28 @@ export default function AlbumModal({
   onClose,
   onLike,
   onFindSomethingElse,
+  propertyId
 }: {
   images: string[]
   isOpen: boolean
   onClose: () => void
-  onLike: () => void
+  onLike: (propertyId?: string) => void
   onFindSomethingElse: () => void
+  propertyId?: string
 }) {
+  console.log('AlbumModal rendered with propertyId:', propertyId)
+  
   if (!isOpen) return null
+  
+  // Ensure propertyId is preserved even if it's empty string by converting to string
+  const effectivePropertyId = propertyId || '';
+  
+  const handleLikeClick = () => {
+    console.log('Like button clicked with propertyId before call:', effectivePropertyId);
+    // Pass the propertyId explicitly
+    onLike(effectivePropertyId);
+  };
+  
   return (
     <div style={modalStyles.overlay}>
       <div style={modalStyles.content}>
@@ -34,6 +49,11 @@ export default function AlbumModal({
           </button>
           <span style={{ marginLeft: 10, fontWeight: 'bold' }}>
             {images.length} Photos
+            {effectivePropertyId && (
+              <span style={{ fontSize: '10px', marginLeft: '5px', color: '#666' }}>
+                (ID: {effectivePropertyId})
+              </span>
+            )}
           </span>
         </div>
 
@@ -54,7 +74,10 @@ export default function AlbumModal({
         </div>
 
         <div style={modalStyles.footer}>
-          <button style={modalStyles.footerBtn} onClick={onLike}>
+          <button 
+            style={modalStyles.footerBtn} 
+            onClick={handleLikeClick}
+          >
             Like it
           </button>
           <button style={modalStyles.footerBtn} onClick={onFindSomethingElse}>

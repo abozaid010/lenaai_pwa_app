@@ -23,6 +23,7 @@ export default function ChatPage() {
 
   // -------- Album Modal --------
   const [selectedAlbum, setSelectedAlbum] = useState<Array<{ url: string; full: string }> | null>(null)
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null)
 
   // -------- Voice Recording --------
   const [isRecording, setIsRecording] = useState(false)
@@ -107,6 +108,13 @@ export default function ChatPage() {
           Your Phone Number: {phoneNumber || 'loading...'}
         </div>
   
+        {/* Debug Info */}
+        {process.env.NODE_ENV !== 'production' && (
+          <div style={{ padding: '0 10px', fontSize: '12px', color: '#666' }}>
+            Selected Property ID: {selectedPropertyId || 'none'}
+          </div>
+        )}
+
         {/* Clear Chat */}
         <button style={styles.clearButton} onClick={handleClearChat}>
           Clear Chat
@@ -118,15 +126,67 @@ export default function ChatPage() {
   // ==============================
   //   ALBUM MODAL HANDLERS
   // ==============================
-  const handleOpenAlbum = (images: Array<{ url: string; full: string }>) => {
-    setSelectedAlbum(images)
+  const handleOpenAlbum = (images: Array<{ url: string; full: string }>, propertyId?: string) => {
+    // Convert undefined/null to empty string for consistency
+    const safePropertyId = propertyId || '';
+    console.log('handleOpenAlbum called with propertyId:', safePropertyId);
+    
+    // Store the album and property ID
+    setSelectedAlbum(images);
+    setSelectedPropertyId(safePropertyId);
+    
+    // Verify state was updated
+    setTimeout(() => {
+      console.log('Selected property ID after state update:', selectedPropertyId);
+    }, 0);
   }
   const handleCloseAlbum = () => {
     setSelectedAlbum(null)
+    setSelectedPropertyId(null)
   }
-  const handleLikeIt = () => {
-    console.log('User clicked "Like it"')
-    setSelectedAlbum(null)
+  const handleLikeIt = async (propertyId?: string) => {
+    console.log('User clicked "Like it"', propertyId)
+    console.log('Selected property ID state:', selectedPropertyId)
+    
+    // Use either the passed propertyId or the selectedPropertyId from state
+    // Convert empty strings to undefined
+    const effectivePropertyId = propertyId || selectedPropertyId || '';
+    console.log('Effective property ID used:', effectivePropertyId)
+    
+    if (!effectivePropertyId) {
+      console.error('No property ID available for Like action');
+      return; // Exit early if no property ID
+    }
+    
+    // Add user message to indicate they liked the property
+    const userMsg: Message = {
+      id: Helper.getNextId(),
+      type: 'text',
+      content: 'I like this property',
+      sender: 'user',
+    }
+    setMessages((prev) => [...prev, userMsg])
+    
+    console.log('Calling API with property ID:', effectivePropertyId)
+    
+    try {
+      // Call API with the property ID
+      const data = await apiService.sendToLanggraphChat('I like this property', effectivePropertyId)
+      
+      if (data) {
+        console.log('API returned data:', data)
+        const newMessages = createMessagesFromResponse(data)
+        setMessages((prev) => [...prev, ...newMessages])
+      } else {
+        console.error('API call failed or returned no data')
+      }
+    } catch (error) {
+      console.error('Error in handleLikeIt:', error);
+    } finally {
+      // Close the modal after API call completes (success or failure)
+      setSelectedAlbum(null)
+      setSelectedPropertyId(undefined)
+    }
   }
   const handleFindSomethingElse = () => {
     console.log('User clicked "Find something else"')
@@ -346,6 +406,7 @@ export default function ChatPage() {
   useEffect(() => {
     const unitId = localStorage.getItem('unitId')
     if (unitId) {
+      console.log('Found unitId in localStorage:', unitId);
       
       const fetchUnitDetails = async () => {
         try {
@@ -374,7 +435,8 @@ export default function ChatPage() {
             type: 'text',
             content: data.unitTitle || '',
             sender: 'server',
-            duration: ''
+            duration: '',
+            propertyId: unitId
           })
 
           // Add unit details as text message
@@ -385,7 +447,8 @@ export default function ChatPage() {
             type: 'text',
             content: unitDetails,
             sender: 'server',
-            duration: ''
+            duration: '',
+            propertyId: unitId
           })
 
           // Add images as album if they exist
@@ -395,12 +458,15 @@ export default function ChatPage() {
               full: img.url
             }))
             
+            console.log('Adding album message with unitId:', unitId)
+            
             newMessages.push({
               id: Helper.getNextId(),
               type: 'imageAlbum',
               content: albumItems,
               sender: 'server',
-              duration: ''
+              duration: '',
+              propertyId: unitId
             })
           }
 
@@ -542,6 +608,7 @@ export default function ChatPage() {
         onClose={handleCloseAlbum}
         onLike={handleLikeIt}
         onFindSomethingElse={handleFindSomethingElse}
+        propertyId={selectedPropertyId}
       />
     </div>
   )
