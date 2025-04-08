@@ -10,58 +10,11 @@ import AlbumModal from '../components/AlbumModal'
 import MessageBubble from '../components/MessageBubble'
 import { Message } from '@/types/Message'
 import { ApiService } from '../services/ApiService'
+import { createMessagesFromResponse } from '../utils/MessageHelper'
 
 // Add this function near the top of the file, after the imports
 const apiService = ApiService.getInstance()
 
-// Add this function near the top of the file, after the imports
-const createMessagesFromResponse = (data: any): Message[] => {
-  const newMessages: Message[] = []
-
-  // Add main response message
-  newMessages.push({
-    id: Helper.getNextId(),
-    type: 'text',
-    content: data.message || '(No message received)',
-    sender: 'server',
-    duration: ''
-  })
-
-  // Handle properties if they exist
-  if (Array.isArray(data.properties)) {
-    data.properties.forEach((prop: any) => {
-      const description = prop.description || ''
-      const images = prop.metadata?.images || []
-
-      if (description) {
-        newMessages.push({
-          id: Helper.getNextId(),
-          type: 'text',
-          content: description,
-          sender: 'server',
-          duration: ''
-        })
-      }
-      if (Array.isArray(images) && images.length > 0) {
-        const albumItems = images.map((imgObj: any) => ({
-          url: imgObj.url,
-          full: imgObj.url
-        }))
-        newMessages.push({
-          id: Helper.getNextId(),
-          type: 'imageAlbum',
-          content: albumItems,
-          sender: 'server',
-          duration: ''
-        })
-      }
-    })
-  }
-
-  return newMessages
-}
-
-// ---------- MAIN CHAT PAGE COMPONENT ----------
 export default function ChatPage() {
   // -------- Chat State --------
   const [messages, setMessages] = useState<Message[]>([])
