@@ -536,7 +536,7 @@ export default function ChatPage() {
         </button>
       </header>
  {/* Development Mode Header View */}
- {process.env.NODE_ENV !== 'production' && headerView()}
+ { headerView()}
       {/* Chat Area */}
       <div style={styles.chatArea} ref={chatAreaRef}>
         {messages.map((msg) => (
