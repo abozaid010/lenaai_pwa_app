@@ -103,22 +103,19 @@ export default function ChatPage() {
   function headerView() {
     return <div>
 
-      {/* Info: phone number */}
-      <div style={{ padding: '0 10px', fontStyle: 'italic' }}>
-        Your Phone Number: {phoneNumber || 'loading...'}
-      </div>
-
-      {/* Debug Info */}
-      {process.env.NODE_ENV !== 'production' && (
-        <div style={{ padding: '0 10px', fontSize: '12px', color: '#666' }}>
-          Selected Property ID: {selectedPropertyId || 'none'}
+      <div style={{ 
+        padding: '0 10px', 
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div style={{ fontStyle: 'italic' }}>
+          Your Number: {phoneNumber || 'loading...'}
         </div>
-      )}
-
-      {/* Clear Chat */}
-      <button style={styles.clearButton} onClick={handleClearChat}>
-        Clear Chat
-      </button>
+        <button style={styles.clearButton} onClick={handleClearChat}>
+          Clear Chat
+        </button>
+      </div>
     </div>
 
   }
@@ -546,7 +543,7 @@ export default function ChatPage() {
         </button>
       </header>
       {/* Development Mode Header View */}
-      {process.env.NODE_ENV !== 'production' && headerView()}
+      { headerView()}
       {/* Chat Area */}
       <div style={styles.chatArea} ref={chatAreaRef}>
         {
@@ -561,7 +558,26 @@ export default function ChatPage() {
         }
         {
           isLoading && (
-            <PlaceHolder title={selectedPropertyId ? "The property is really good , we are preparing the details for you" : "Please wait while we are searching for the best options for you"} />
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px',
+              padding: '10px 15px',
+              backgroundColor: 'rgba(111, 73, 255, 0.1)',
+              borderRadius: '12px',
+              margin: '10px 0',
+              alignSelf: 'flex-start'
+            }}>
+              <div style={{ 
+                width: '20px',
+                height: '20px',
+                border: '2px solid #6F49FF',
+                borderTop: '2px solid transparent',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+              <PlaceHolder title={"Lena is thinking..."} style={{ color: '#6F49FF' }} />
+            </div>
           )
         }
       </div>
