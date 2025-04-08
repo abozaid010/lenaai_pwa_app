@@ -443,6 +443,14 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
+  // Add this handler for keyboard events
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && newMessage.trim()) {
+      e.preventDefault();
+      handleSendText();
+    }
+  };
+
   return (
     <div style={styles.container}>
      
@@ -482,6 +490,7 @@ export default function ChatPage() {
           placeholder="Type a message..."
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
+          onKeyPress={handleKeyPress}
         />
 
         {newMessage.trim().length > 0 ? (
