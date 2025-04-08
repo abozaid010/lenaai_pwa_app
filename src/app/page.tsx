@@ -33,6 +33,16 @@ export default function ChatPage() {
   const clientId = 'DREAM_HOMES'
   const STORAGE_KEY = phoneNumber ? `chat_${phoneNumber}` : 'myChatMessages'
 
+  // Add this ref near the top of the component
+  const chatAreaRef = useRef<HTMLDivElement>(null);
+
+  // Add a scrollToBottom helper function
+  const scrollToBottom = () => {
+    if (chatAreaRef.current) {
+      chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
+    }
+  };
+
   // ==============================
   //   1) On Load: phone number
   // ==============================
@@ -84,6 +94,9 @@ export default function ChatPage() {
   const handleClearChat = () => {
     setMessages([])
     localStorage.removeItem(STORAGE_KEY)
+    const newNumber = Helper.getRandomEgyptPhoneNumber()
+    setPhoneNumber(newNumber)
+    localStorage.setItem('phone_number', newNumber)
     Helper.globalMessageId = 1
   }
   function headerView() {
@@ -425,6 +438,11 @@ export default function ChatPage() {
     }
   }, [])
 
+  // Add useEffect to scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   return (
     <div style={styles.container}>
      
@@ -446,7 +464,7 @@ export default function ChatPage() {
  {/* Development Mode Header View */}
  {process.env.NODE_ENV !== 'production' && headerView()}
       {/* Chat Area */}
-      <div style={styles.chatArea}>
+      <div style={styles.chatArea} ref={chatAreaRef}>
         {messages.map((msg) => (
           <MessageBubble
             key={msg.id}
