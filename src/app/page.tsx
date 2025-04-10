@@ -180,7 +180,7 @@ export default function ChatPage() {
     try {
       // Call API with the property ID
       setIsLoading(true)
-      const data = await apiService.sendToLanggraphChat('I like this property', effectivePropertyId)
+      const data = await apiService.sendToLanggraphChat('I like this property, when can I view it?', effectivePropertyId)
 
       if (data) {
         console.log('API returned data:', data)
