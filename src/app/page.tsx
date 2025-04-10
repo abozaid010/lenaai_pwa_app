@@ -12,6 +12,7 @@ import { Message } from '@/types/Message'
 import { ApiService } from '../services/ApiService'
 import { createMessagesFromResponse } from '../utils/MessageHelper'
 import PlaceHolder from '../components/PlaceHolder'
+import ClientIdInput from '../components/ClientIdInput'
 // Add this function near the top of the file, after the imports
 const apiService = ApiService.getInstance()
 
@@ -101,23 +102,28 @@ export default function ChatPage() {
     Helper.globalMessageId = 1
   }
   function headerView() {
-    return <div>
-
+    return (
       <div style={{ 
         padding: '0 10px', 
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+        flexDirection: 'column',
+        gap: '10px'
       }}>
-        <div style={{ fontStyle: 'italic' }}>
-          Your Number: {phoneNumber || 'loading...'}
+        <div style={{ 
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div style={{ fontStyle: 'italic' }}>
+            Your Number: {phoneNumber || 'loading...'}
+          </div>
+          <button style={styles.clearButton} onClick={handleClearChat}>
+            Clear Chat
+          </button>
         </div>
-        <button style={styles.clearButton} onClick={handleClearChat}>
-          Clear Chat
-        </button>
+        <ClientIdInput />
       </div>
-    </div>
-
+    );
   }
 
   // ==============================
